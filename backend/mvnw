@@ -1,0 +1,30 @@
+#!/bin/sh
+# ----------------------------------------------------------------------------
+# Maven Wrapper startup shell script (simplified)
+# Downloads/uses the Maven distribution pinned in
+# .mvn/wrapper/maven-wrapper.properties via maven-wrapper.jar.
+# ----------------------------------------------------------------------------
+
+PRG="$0"
+PRGDIR=$(dirname "$PRG")
+BASEDIR=$(cd "$PRGDIR" && pwd)
+
+WRAPPER_JAR="$BASEDIR/.mvn/wrapper/maven-wrapper.jar"
+
+if [ -z "$JAVA_HOME" ]; then
+  JAVACMD="java"
+else
+  JAVACMD="$JAVA_HOME/bin/java"
+fi
+
+if [ ! -f "$WRAPPER_JAR" ]; then
+  echo "Cannot find $WRAPPER_JAR" >&2
+  echo "Please run this project from a machine with internet access on first run," >&2
+  echo "or open the project in IntelliJ IDEA and let it resolve Maven automatically." >&2
+  exit 1
+fi
+
+exec "$JAVACMD" \
+  -Dmaven.multiModuleProjectDirectory="$BASEDIR" \
+  -classpath "$WRAPPER_JAR" \
+  org.apache.maven.wrapper.MavenWrapperMain "$@"

@@ -1,0 +1,3553 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel de Evaluación de Desempeño</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+  :root{
+    --navy-950:#081326;
+    --navy-900:#0A1F3D;
+    --navy-800:#12305A;
+    --navy-700:#1B3F73;
+    --navy-600:#2A5490;
+    --red-600:#C81D30;
+    --red-700:#9E1526;
+    --amber-600:#B4740E;
+    --amber-bg:#FDEFD9;
+    --green-600:#217A43;
+    --green-bg:#E4F3E8;
+    --white:#FFFFFF;
+    --fog:#F3F5F9;
+    --fog-dark:#E5E9F0;
+    --ink:#0A1F3D;
+    --ink-soft:#4C5A72;
+    --line:#DCE1EA;
+    --radius-card:14px;
+    --radius-pill:999px;
+    font-size:16px;
+  }
+
+  *{
+    box-sizing:border-box;
+  }
+
+  html,
+  body{
+    margin:0;
+    padding:0;
+  }
+
+  body{
+    font-family:'Inter',system-ui,sans-serif;
+    background:var(--fog);
+    color:var(--ink);
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+
+  h1,
+  h2,
+  h3{
+    font-family:'Space Grotesk',system-ui,sans-serif;
+    margin:0;
+    color:var(--navy-900);
+  }
+
+  button{
+    font-family:inherit;
+  }
+
+  ::selection{
+    background:var(--red-600);
+    color:#fff;
+  }
+
+  :focus-visible{
+    outline:3px solid var(--red-600);
+    outline-offset:2px;
+  }
+
+  /* =========================================================
+     LAYOUT
+  ========================================================= */
+
+  .shell{
+    display:grid;
+    grid-template-columns:76px 1fr;
+    min-height:100vh;
+  }
+
+  /* =========================================================
+     LEFT RAIL
+  ========================================================= */
+
+  .rail{
+    background:var(--navy-950);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:22px 0;
+    gap:6px;
+    position:sticky;
+    top:0;
+    height:100vh;
+    z-index:20;
+  }
+
+  .rail__mark{
+    width:38px;
+    height:38px;
+    border-radius:10px;
+    background:linear-gradient(145deg,var(--red-600),var(--red-700));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-weight:700;
+    font-family:'Space Grotesk',sans-serif;
+    font-size:.95rem;
+    margin-bottom:28px;
+    flex-shrink:0;
+  }
+
+  .rail__nav{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    width:100%;
+    align-items:center;
+  }
+
+  .rail__btn{
+    width:52px;
+    height:52px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:transparent;
+    border:none;
+    border-left:3px solid transparent;
+    color:#8DA0C4;
+    cursor:pointer;
+    border-radius:8px;
+    position:relative;
+    transition:color .15s ease,background .15s ease;
+  }
+
+  .rail__btn svg{
+    width:21px;
+    height:21px;
+    stroke:currentColor;
+    fill:none;
+    stroke-width:1.7;
+  }
+
+  .rail__btn:hover{
+    color:#fff;
+    background:rgba(255,255,255,.06);
+  }
+
+  .rail__btn[aria-current="true"]{
+    color:#fff;
+    background:var(--navy-800);
+    border-left-color:var(--red-600);
+  }
+
+  .rail__btn .tip{
+    position:absolute;
+    left:64px;
+    background:var(--navy-950);
+    color:#fff;
+    font-size:.72rem;
+    padding:6px 10px;
+    border-radius:6px;
+    white-space:nowrap;
+    opacity:0;
+    pointer-events:none;
+    transform:translateX(-4px);
+    transition:opacity .12s ease,transform .12s ease;
+    z-index:100;
+  }
+
+  .rail__btn:hover .tip{
+    opacity:1;
+    transform:translateX(0);
+  }
+
+  .rail__spacer{
+    flex:1;
+  }
+
+  .rail__btn--exit{
+    color:#E8899A;
+  }
+
+  .rail__btn--exit:hover{
+    color:#fff;
+    background:var(--red-700);
+  }
+
+  .rail__foot{
+    color:#4C5D80;
+    font-size:.62rem;
+    writing-mode:vertical-rl;
+    letter-spacing:.04em;
+    margin-bottom:8px;
+  }
+
+  /* =========================================================
+     MAIN
+  ========================================================= */
+
+  .main{
+    padding:28px clamp(20px,4vw,64px) 60px;
+    width:100%;
+    max-width:none;
+    min-width:0;
+  }
+
+  .topline{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:24px;
+    margin-bottom:34px;
+  }
+
+  .topline__title{
+    max-width:560px;
+  }
+
+  .topline__title .eyebrow{
+    color:var(--red-600);
+    font-weight:600;
+    font-size:.82rem;
+    margin:0 0 6px;
+  }
+
+  .topline__title h1{
+    font-size:clamp(1.5rem,2.4vw,2rem);
+    line-height:1.15;
+  }
+
+  .topline__title p{
+    color:var(--ink-soft);
+    margin:10px 0 0;
+    font-size:.95rem;
+    line-height:1.5;
+  }
+
+  /* =========================================================
+     PROFILE
+  ========================================================= */
+
+  .profile-card{
+    background:var(--white);
+    border:1px solid var(--line);
+    border-top:3px solid var(--red-600);
+    border-radius:var(--radius-card);
+    padding:14px 16px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    min-width:264px;
+    box-shadow:0 10px 24px -18px rgba(10,31,61,.35);
+    flex-shrink:0;
+  }
+
+  .avatar-wrap{
+    position:relative;
+    width:52px;
+    height:52px;
+    flex-shrink:0;
+  }
+
+  .avatar-wrap img{
+    width:100%;
+    height:100%;
+    border-radius:50%;
+    object-fit:cover;
+    display:block;
+    background:var(--navy-800);
+  }
+
+  .avatar-edit{
+    position:absolute;
+    bottom:-3px;
+    right:-3px;
+    width:20px;
+    height:20px;
+    background:var(--red-600);
+    border:2px solid #fff;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    color:#fff;
+    padding:0;
+  }
+
+  .avatar-edit svg{
+    width:10px;
+    height:10px;
+    stroke:currentColor;
+    fill:none;
+    stroke-width:2.4;
+  }
+
+  .avatar-edit:hover{
+    background:var(--red-700);
+  }
+
+  #avatarInput{
+    display:none;
+  }
+
+  .profile-card__info{
+    min-width:0;
+  }
+
+  .profile-card__name{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:.95rem;
+    color:var(--navy-900);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  .profile-card__role{
+    font-size:.78rem;
+    color:var(--red-600);
+    font-weight:600;
+    margin-top:1px;
+  }
+
+  .profile-card__meta{
+    font-size:.74rem;
+    color:var(--ink-soft);
+    margin-top:3px;
+    line-height:1.4;
+  }
+
+  .profile-card__meta span{
+    display:block;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    max-width:180px;
+  }
+
+  /* =========================================================
+     HERO
+  ========================================================= */
+
+  .hero{
+    background:linear-gradient(120deg,var(--navy-900),var(--navy-700) 130%);
+    border-radius:18px;
+    padding:30px clamp(20px,3vw,38px);
+    display:flex;
+    align-items:center;
+    gap:36px;
+    color:#fff;
+    margin-bottom:36px;
+    position:relative;
+    overflow:hidden;
+  }
+
+  .hero::after{
+    content:"";
+    position:absolute;
+    right:-60px;
+    top:-60px;
+    width:220px;
+    height:220px;
+    border-radius:50%;
+    background:radial-gradient(circle,rgba(200,29,48,.35),transparent 70%);
+  }
+
+  .hero__ring{
+    flex-shrink:0;
+    position:relative;
+    width:104px;
+    height:104px;
+    z-index:1;
+  }
+
+  .hero__ring svg{
+    transform:rotate(-90deg);
+  }
+
+  .hero__ring-label{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'Space Grotesk',sans-serif;
+    font-size:1.35rem;
+    font-weight:700;
+  }
+
+  .hero__body{
+    z-index:1;
+  }
+
+  .hero__body p.eyebrow{
+    color:#FF8A97;
+    font-weight:600;
+    font-size:.8rem;
+    margin:0 0 6px;
+  }
+
+  .hero__body h2{
+    color:#fff;
+    font-size:1.3rem;
+    margin-bottom:8px;
+  }
+
+  .hero__body p.desc{
+    color:#C6D2E8;
+    font-size:.9rem;
+    max-width:480px;
+    line-height:1.5;
+    margin:0;
+  }
+
+  /* =========================================================
+     MODULES
+  ========================================================= */
+
+  .grid-label{
+    font-size:.8rem;
+    color:var(--ink-soft);
+    font-weight:600;
+    margin:0 0 14px;
+  }
+
+  .modules{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+    gap:16px;
+  }
+
+  .module-card{
+    background:var(--white);
+    border:1px solid var(--line);
+    border-radius:var(--radius-card);
+    padding:22px 20px;
+    text-align:left;
+    cursor:pointer;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;
+  }
+
+  .module-card:hover,
+  .module-card:focus-visible{
+    transform:translateY(-3px);
+    box-shadow:0 16px 30px -20px rgba(10,31,61,.45);
+    border-color:var(--navy-700);
+  }
+
+  .module-card__icon{
+    width:42px;
+    height:42px;
+    border-radius:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--fog);
+    color:var(--navy-800);
+  }
+
+  .module-card__icon svg{
+    width:20px;
+    height:20px;
+    stroke:currentColor;
+    fill:none;
+    stroke-width:1.7;
+  }
+
+  .module-card[data-accent="red"] .module-card__icon{
+    background:#FBE7E9;
+    color:var(--red-600);
+  }
+
+  .module-card h3{
+    font-size:1.02rem;
+    margin-bottom:4px;
+  }
+
+  .module-card p{
+    margin:0;
+    color:var(--ink-soft);
+    font-size:.85rem;
+    line-height:1.45;
+  }
+
+  .module-card__arrow{
+    margin-top:auto;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    color:var(--navy-800);
+    font-weight:600;
+    font-size:.82rem;
+  }
+
+  .module-card__arrow svg{
+    width:14px;
+    height:14px;
+    stroke:currentColor;
+    fill:none;
+    stroke-width:2;
+    transition:transform .15s ease;
+  }
+
+  .module-card:hover .module-card__arrow svg{
+    transform:translateX(3px);
+  }
+
+  /* =========================================================
+     VIEWS
+  ========================================================= */
+
+  .view{
+    display:none;
+  }
+
+  .view.is-active{
+    display:block;
+    animation:rise .28s ease both;
+  }
+
+  @keyframes rise{
+    from{
+      opacity:0;
+      transform:translateY(8px);
+    }
+    to{
+      opacity:1;
+      transform:translateY(0);
+    }
+  }
+
+  .view__head{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-bottom:26px;
+  }
+
+  .back-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--navy-800);
+    cursor:pointer;
+    flex-shrink:0;
+  }
+
+  .back-btn svg{
+    width:16px;
+    height:16px;
+    stroke:currentColor;
+    fill:none;
+    stroke-width:2.2;
+  }
+
+  .back-btn:hover{
+    background:var(--fog-dark);
+  }
+
+  .view__head h2{
+    font-size:1.35rem;
+  }
+
+  .view__head p{
+    margin:2px 0 0;
+    color:var(--ink-soft);
+    font-size:.88rem;
+  }
+
+  .panel{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:26px clamp(18px,3vw,32px);
+  }
+
+  /* =========================================================
+     CRITERIA
+  ========================================================= */
+
+  .criteria{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+
+  .criterion{
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:16px 18px 18px;
+  }
+
+  .criterion__top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    margin-bottom:14px;
+  }
+
+  .criterion__top h4{
+    margin:0;
+    font-size:.95rem;
+    font-family:'Space Grotesk',sans-serif;
+    color:var(--navy-900);
+  }
+
+  .peso-badge{
+    font-size:.72rem;
+    font-weight:600;
+    color:var(--navy-700);
+    background:var(--fog);
+    padding:4px 10px;
+    border-radius:var(--radius-pill);
+    flex-shrink:0;
+  }
+
+  .crit-stats{
+    display:flex;
+    gap:22px;
+    flex-wrap:wrap;
+    align-items:flex-end;
+  }
+
+  .crit-stat{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    min-width:110px;
+  }
+
+  .crit-stat label{
+    font-size:.72rem;
+    color:var(--ink-soft);
+    font-weight:600;
+  }
+
+  .crit-stat--meta input{
+    width:72px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:7px 8px;
+    font-size:.86rem;
+    color:var(--navy-900);
+    font-weight:600;
+  }
+
+  .crit-stat--avance{
+    flex:1;
+    min-width:180px;
+    display:flex;
+    flex-direction:row;
+    align-items:center;
+    gap:10px;
+  }
+
+  .crit-stat--avance input[type="range"]{
+    flex:1;
+    accent-color:var(--red-600);
+  }
+
+  .crit-stat__value{
+    font-size:.86rem;
+    font-weight:700;
+    color:var(--navy-900);
+    width:42px;
+    text-align:right;
+    flex-shrink:0;
+  }
+
+  .crit-bar{
+    position:relative;
+    height:8px;
+    background:var(--fog-dark);
+    border-radius:var(--radius-pill);
+    margin-top:14px;
+  }
+
+  .crit-bar__fill{
+    height:100%;
+    border-radius:var(--radius-pill);
+    background:linear-gradient(90deg,var(--navy-700),var(--red-600));
+    transition:width .12s ease;
+  }
+
+  .crit-bar__meta{
+    position:absolute;
+    top:-3px;
+    width:2px;
+    height:14px;
+    background:var(--navy-900);
+    border-radius:1px;
+  }
+
+  .crit-bar__caption{
+    display:flex;
+    justify-content:space-between;
+    margin-top:6px;
+    font-size:.7rem;
+    color:var(--ink-soft);
+  }
+
+  /* =========================================================
+     TOTALS
+  ========================================================= */
+
+  .totals-bar{
+    display:flex;
+    align-items:center;
+    gap:28px;
+    flex-wrap:wrap;
+    margin-top:24px;
+    padding-top:22px;
+    border-top:1px solid var(--line);
+  }
+
+  .totals-bar__item{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+  }
+
+  .totals-bar__item span{
+    font-size:.76rem;
+    color:var(--ink-soft);
+  }
+
+  .totals-bar__item strong{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:1.2rem;
+    color:var(--navy-900);
+  }
+
+  .totals-bar__actions{
+    margin-left:auto;
+    display:flex;
+    gap:10px;
+  }
+
+  /* =========================================================
+     BUTTONS
+  ========================================================= */
+
+  .btn{
+    padding:11px 20px;
+    border-radius:var(--radius-pill);
+    font-size:.86rem;
+    font-weight:600;
+    cursor:pointer;
+    border:1px solid transparent;
+    white-space:nowrap;
+  }
+
+  .btn--ghost{
+    background:#fff;
+    border-color:var(--line);
+    color:var(--navy-900);
+  }
+
+  .btn--ghost:hover{
+    background:var(--fog-dark);
+  }
+
+  .btn--primary{
+    background:var(--red-600);
+    color:#fff;
+  }
+
+  .btn--primary:hover{
+    background:var(--red-700);
+  }
+
+  /* =========================================================
+     RESULTADOS
+  ========================================================= */
+
+  .results{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+
+  .result-row{
+    display:flex;
+    align-items:center;
+    gap:16px;
+  }
+
+  .result-row__label{
+    width:190px;
+    flex-shrink:0;
+    font-size:.86rem;
+    color:var(--navy-900);
+    font-weight:500;
+  }
+
+  .result-row__bar{
+    flex:1;
+    height:9px;
+    background:var(--fog-dark);
+    border-radius:var(--radius-pill);
+    overflow:hidden;
+  }
+
+  .result-row__fill{
+    height:100%;
+    background:linear-gradient(90deg,var(--navy-700),var(--red-600));
+    border-radius:var(--radius-pill);
+  }
+
+  .result-row__value{
+    width:42px;
+    text-align:right;
+    font-size:.84rem;
+    font-weight:600;
+    color:var(--navy-900);
+  }
+
+  .results-summary{
+    display:flex;
+    gap:14px;
+    margin-top:24px;
+    padding-top:22px;
+    border-top:1px solid var(--line);
+    flex-wrap:wrap;
+  }
+
+  .summary-chip{
+    flex:1;
+    min-width:140px;
+    background:var(--fog);
+    border-radius:12px;
+    padding:14px 16px;
+  }
+
+  .summary-chip span{
+    display:block;
+    font-size:.76rem;
+    color:var(--ink-soft);
+    margin-bottom:4px;
+  }
+
+  .summary-chip strong{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:1.25rem;
+    color:var(--navy-900);
+  }
+
+  /* =========================================================
+     TABLE
+  ========================================================= */
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:.86rem;
+  }
+
+  thead th{
+    text-align:left;
+    color:var(--ink-soft);
+    font-weight:600;
+    font-size:.76rem;
+    padding:0 12px 10px;
+    border-bottom:1px solid var(--line);
+  }
+
+  tbody td{
+    padding:14px 12px;
+    border-bottom:1px solid var(--line);
+    color:var(--navy-900);
+  }
+
+  tbody tr:last-child td{
+    border-bottom:none;
+  }
+
+  .status-pill{
+    display:inline-block;
+    padding:4px 11px;
+    border-radius:var(--radius-pill);
+    font-size:.74rem;
+    font-weight:600;
+  }
+
+  .status-pill--ok{
+    background:var(--green-bg);
+    color:var(--green-600);
+  }
+
+  .status-pill--warn{
+    background:#FBE7E9;
+    color:var(--red-600);
+  }
+
+  .status-pill--pend{
+    background:#EAEFF7;
+    color:var(--navy-700);
+  }
+
+  /* =========================================================
+     RECOMENDACIONES
+  ========================================================= */
+
+  .reco-empty{
+    text-align:center;
+    padding:36px 16px;
+    max-width:420px;
+    margin:0 auto;
+  }
+
+  .reco-empty__icon{
+    width:52px;
+    height:52px;
+    border-radius:14px;
+    background:var(--fog);
+    color:var(--navy-800);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin:0 auto 16px;
+  }
+
+  .reco-empty__icon svg{
+    width:24px;
+    height:24px;
+    stroke:currentColor;
+    fill:none;
+    stroke-width:1.6;
+  }
+
+  .reco-empty h3{
+    font-size:1.05rem;
+    margin-bottom:8px;
+  }
+
+  .reco-empty p{
+    color:var(--ink-soft);
+    font-size:.87rem;
+    line-height:1.55;
+    margin:0 0 20px;
+  }
+
+  .reco-summary{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    margin-bottom:26px;
+  }
+
+  .reco-list{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+
+  .reco-card{
+    display:flex;
+    gap:14px;
+    align-items:flex-start;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:16px 18px;
+  }
+
+  .reco-card__badge{
+    flex-shrink:0;
+    padding:4px 10px;
+    border-radius:var(--radius-pill);
+    font-size:.7rem;
+    font-weight:700;
+    margin-top:2px;
+    white-space:nowrap;
+  }
+
+  .reco-card__badge--alta{
+    background:#FBE7E9;
+    color:var(--red-600);
+  }
+
+  .reco-card__badge--media{
+    background:var(--amber-bg);
+    color:var(--amber-600);
+  }
+
+  .reco-card__badge--baja{
+    background:#EAEFF7;
+    color:var(--navy-700);
+  }
+
+  .reco-card__badge--fortaleza{
+    background:var(--green-bg);
+    color:var(--green-600);
+  }
+
+  .reco-card__body h4{
+    margin:0 0 4px;
+    font-size:.92rem;
+    font-family:'Space Grotesk',sans-serif;
+    color:var(--navy-900);
+  }
+
+  .reco-card__body p{
+    margin:0;
+    color:var(--ink-soft);
+    font-size:.83rem;
+    line-height:1.55;
+  }
+
+  .reco-card__body .reco-tag{
+    display:block;
+    font-size:.72rem;
+    color:var(--ink-soft);
+    margin-top:6px;
+  }
+
+  .reco-note{
+    margin-top:22px;
+    padding-top:18px;
+    border-top:1px solid var(--line);
+    font-size:.78rem;
+    color:var(--ink-soft);
+    display:flex;
+    gap:8px;
+    align-items:flex-start;
+  }
+
+  .reco-note svg{
+    width:15px;
+    height:15px;
+    stroke:currentColor;
+    fill:none;
+    stroke-width:1.8;
+    flex-shrink:0;
+    margin-top:1px;
+  }
+
+  /* =========================================================
+     EXIT MODAL - CORREGIDO
+  ========================================================= */
+
+  .exit-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(8,19,38,.72);
+
+    display:none;
+    align-items:center;
+    justify-content:center;
+
+    z-index:9999;
+    padding:20px;
+
+    /*
+      IMPORTANTE:
+      cuando está cerrado NO captura ningún clic.
+    */
+    pointer-events:none;
+  }
+
+  .exit-overlay.is-open{
+    display:flex;
+    pointer-events:auto;
+  }
+
+  /*
+    hidden siempre gana.
+    Esto evita que un overlay invisible
+    quede bloqueando la aplicación.
+  */
+  .exit-overlay[hidden]{
+    display:none !important;
+    pointer-events:none !important;
+  }
+
+  .exit-card{
+    position:relative;
+    background:#fff;
+    border-radius:16px;
+    padding:30px 28px;
+    max-width:360px;
+    width:100%;
+    text-align:center;
+    border-top:4px solid var(--red-600);
+    box-shadow:0 25px 70px rgba(0,0,0,.35);
+    animation:modalIn .18s ease-out;
+  }
+
+  @keyframes modalIn{
+    from{
+      opacity:0;
+      transform:translateY(8px) scale(.98);
+    }
+
+    to{
+      opacity:1;
+      transform:translateY(0) scale(1);
+    }
+  }
+
+  .exit-card h2{
+    font-size:1.15rem;
+    margin:0 0 8px;
+  }
+
+  .exit-card p{
+    color:var(--ink-soft);
+    font-size:.87rem;
+    line-height:1.5;
+    margin:0 0 22px;
+  }
+
+  .exit-actions{
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .exit-close{
+    position:absolute;
+    top:10px;
+    right:10px;
+
+    width:32px;
+    height:32px;
+
+    border:0;
+    border-radius:50%;
+
+    background:var(--fog);
+    color:var(--navy-900);
+
+    cursor:pointer;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    font-size:20px;
+    line-height:1;
+  }
+
+  .exit-close:hover{
+    background:var(--fog-dark);
+  }
+
+  /* =========================================================
+     FLUID / FULL-WIDTH DESKTOP
+     El contenido aprovecha todo el espacio disponible sin
+     dejar una gran zona vacía a la derecha.
+  ========================================================= */
+
+  .main,
+  .topline,
+  .hero,
+  .modules,
+  .view,
+  .panel{
+    min-width:0;
+  }
+
+  .topline__title{
+    flex:1 1 auto;
+    min-width:0;
+  }
+
+  .hero__body{
+    min-width:0;
+  }
+
+  .hero__body .desc{
+    max-width:720px;
+  }
+
+  .modules{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+  }
+
+  @media (max-width:1100px){
+    .modules{
+      grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+  }
+
+  /* =========================================================
+     RESPONSIVE
+  ========================================================= */
+
+  @media (max-width:760px){
+
+    .shell{
+      grid-template-columns:1fr;
+    }
+
+    .main{
+      width:100%;
+      padding:22px 16px 40px;
+    }
+
+    .rail{
+      position:sticky;
+      top:0;
+      height:auto;
+      width:100%;
+      flex-direction:row;
+      padding:10px 14px;
+      z-index:10;
+    }
+
+    .rail__mark{
+      margin:0 12px 0 0;
+    }
+
+    .rail__nav{
+      flex-direction:row;
+    }
+
+    .rail__spacer{
+      display:none;
+    }
+
+    .rail__foot{
+      display:none;
+    }
+
+    .rail__btn .tip{
+      display:none;
+    }
+
+    .rail__btn--exit{
+      margin-left:auto;
+    }
+
+    .topline{
+      flex-direction:column;
+    }
+
+    .profile-card{
+      width:100%;
+    }
+
+    .hero{
+      flex-direction:column;
+      text-align:center;
+      padding:26px 20px;
+      gap:20px;
+    }
+
+    .hero__body .desc{
+      max-width:none;
+    }
+
+    .modules{
+      grid-template-columns:1fr;
+    }
+
+    .result-row{
+      flex-wrap:wrap;
+    }
+
+    .result-row__label{
+      width:100%;
+    }
+
+    .totals-bar__actions{
+      margin-left:0;
+      width:100%;
+      flex-wrap:wrap;
+    }
+
+    .totals-bar__actions .btn{
+      flex:1;
+    }
+
+    .crit-stats{
+      gap:16px;
+    }
+
+    table{
+      min-width:650px;
+    }
+
+    .panel{
+      overflow-x:auto;
+    }
+  }
+
+  @media (prefers-reduced-motion:reduce){
+
+    *,
+    *::before,
+    *::after{
+      animation:none !important;
+      transition:none !important;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+<div class="shell">
+
+  <!-- =======================================================
+       RAIL
+  ======================================================== -->
+
+  <nav class="rail" aria-label="Navegación de módulos">
+
+    <div class="rail__mark" aria-hidden="true">
+      SE
+    </div>
+
+    <div class="rail__nav">
+
+      <button
+        type="button"
+        class="rail__btn"
+        data-target="home"
+        aria-current="true"
+        aria-label="Inicio"
+      >
+        <svg viewBox="0 0 24 24">
+          <path d="M3 11l9-8 9 8"/>
+          <path d="M5 10v10h14V10"/>
+        </svg>
+        <span class="tip">Inicio</span>
+      </button>
+
+      <button
+        type="button"
+        class="rail__btn"
+        data-target="evaluacion"
+        aria-label="Realizar evaluación"
+      >
+        <svg viewBox="0 0 24 24">
+          <path d="M9 11l3 3 8-8"/>
+          <path d="M21 12v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h11"/>
+        </svg>
+        <span class="tip">Realizar evaluación</span>
+      </button>
+
+      <button
+        type="button"
+        class="rail__btn"
+        data-target="resultados"
+        aria-label="Consultar resultados"
+      >
+        <svg viewBox="0 0 24 24">
+          <path d="M4 19V9"/>
+          <path d="M12 19V5"/>
+          <path d="M20 19v-7"/>
+          <path d="M2 19h20"/>
+        </svg>
+        <span class="tip">Consultar resultados</span>
+      </button>
+
+      <button
+        type="button"
+        class="rail__btn"
+        data-target="historial"
+        aria-label="Consultar historial"
+      >
+        <svg viewBox="0 0 24 24">
+          <path d="M3 12a9 9 0 1 0 3-6.7"/>
+          <path d="M3 5v5h5"/>
+          <path d="M12 7v5l4 2"/>
+        </svg>
+        <span class="tip">Consultar historial</span>
+      </button>
+
+      <button
+        type="button"
+        class="rail__btn"
+        data-target="recomendaciones"
+        aria-label="Recomendaciones de IA"
+      >
+        <svg viewBox="0 0 24 24">
+          <path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7L12 3z"/>
+          <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z"/>
+        </svg>
+        <span class="tip">Recomendaciones IA</span>
+      </button>
+
+    </div>
+
+    <div class="rail__spacer"></div>
+
+    <button
+      type="button"
+      class="rail__btn rail__btn--exit"
+      id="exitBtn"
+      aria-label="Salir"
+    >
+      <svg viewBox="0 0 24 24">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <path d="M16 17l5-5-5-5"/>
+        <path d="M21 12H9"/>
+      </svg>
+      <span class="tip">Salir</span>
+    </button>
+
+    <div class="rail__foot">
+      PANEL DE EVALUACIÓN
+    </div>
+
+  </nav>
+
+
+  <!-- =======================================================
+       MAIN
+  ======================================================== -->
+
+  <main class="main">
+
+    <!-- =====================================================
+         HOME
+    ====================================================== -->
+
+    <section class="view is-active" id="view-home">
+
+      <div class="topline">
+
+        <div class="topline__title">
+
+          <p class="eyebrow">
+            Panel principal
+          </p>
+
+          <h1>
+            Evaluación de desempeño
+          </h1>
+
+          <p>
+            Consulta tu estado actual y entra a cada módulo para
+            gestionar tu proceso de evaluación.
+          </p>
+
+        </div>
+
+
+        <!-- PROFILE -->
+
+        <div class="profile-card">
+
+          <div class="avatar-wrap">
+
+            <img
+              id="avatarImg"
+              src="https://api.dicebear.com/7.x/initials/svg?seed=Laura%20Ramirez&backgroundColor=0A1F3D&textColor=ffffff"
+              alt="Foto de perfil"
+            >
+
+            <button
+              type="button"
+              class="avatar-edit"
+              id="avatarEditBtn"
+              title="Cambiar foto"
+              aria-label="Cambiar foto de perfil"
+            >
+              <svg viewBox="0 0 24 24">
+                <path d="M12 20h9"/>
+                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+              </svg>
+            </button>
+
+            <input
+              type="file"
+              id="avatarInput"
+              accept="image/*"
+            >
+
+          </div>
+
+          <div class="profile-card__info">
+
+            <div class="profile-card__name">
+              Laura Ramírez
+            </div>
+
+            <div class="profile-card__role">
+              Analista de Procesos
+            </div>
+
+            <div class="profile-card__meta">
+              <span>Cargo: Coordinación de Calidad</span>
+              <span>laura.ramirez@empresa.com</span>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- HERO -->
+
+      <div class="hero">
+
+        <div class="hero__ring">
+
+          <svg width="104" height="104" viewBox="0 0 104 104">
+
+            <circle
+              cx="52"
+              cy="52"
+              r="44"
+              fill="none"
+              stroke="rgba(255,255,255,.18)"
+              stroke-width="10"
+            />
+
+            <circle
+              cx="52"
+              cy="52"
+              r="44"
+              fill="none"
+              stroke="#C81D30"
+              stroke-width="10"
+              stroke-dasharray="276.5"
+              stroke-dashoffset="77.4"
+              stroke-linecap="round"
+            />
+
+          </svg>
+
+          <div class="hero__ring-label">
+            72%
+          </div>
+
+        </div>
+
+
+        <div class="hero__body">
+
+          <p class="eyebrow">
+            Ciclo activo · 2026-II
+          </p>
+
+          <h2>
+            Tu evaluación de desempeño está en curso
+          </h2>
+
+          <p class="desc">
+            Llevas un avance del 72% en el ciclo actual.
+            Completa la evaluación por criterios y genera tu
+            reporte para recibir recomendaciones de IA.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <p class="grid-label">
+        Módulos disponibles
+      </p>
+
+
+      <div class="modules">
+
+        <!-- EVALUACIÓN -->
+
+        <button
+          type="button"
+          class="module-card"
+          data-target="evaluacion"
+          data-accent="red"
+        >
+
+          <span class="module-card__icon">
+            <svg viewBox="0 0 24 24">
+              <path d="M9 11l3 3 8-8"/>
+              <path d="M21 12v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h11"/>
+            </svg>
+          </span>
+
+          <h3>
+            Realizar evaluación
+          </h3>
+
+          <p>
+            Define meta, avance y peso de cada criterio
+            y genera tu reporte en PDF.
+          </p>
+
+          <span class="module-card__arrow">
+            Entrar
+            <svg viewBox="0 0 24 24">
+              <path d="M5 12h14"/>
+              <path d="M13 6l6 6-6 6"/>
+            </svg>
+          </span>
+
+        </button>
+
+
+        <!-- RESULTADOS -->
+
+        <button
+          type="button"
+          class="module-card"
+          data-target="resultados"
+        >
+
+          <span class="module-card__icon">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 19V9"/>
+              <path d="M12 19V5"/>
+              <path d="M20 19v-7"/>
+              <path d="M2 19h20"/>
+            </svg>
+          </span>
+
+          <h3>
+            Consultar resultados
+          </h3>
+
+          <p>
+            Revisa el puntaje obtenido por competencia
+            en el ciclo actual.
+          </p>
+
+          <span class="module-card__arrow">
+            Entrar
+            <svg viewBox="0 0 24 24">
+              <path d="M5 12h14"/>
+              <path d="M13 6l6 6-6 6"/>
+            </svg>
+          </span>
+
+        </button>
+
+
+        <!-- HISTORIAL -->
+
+        <button
+          type="button"
+          class="module-card"
+          data-target="historial"
+        >
+
+          <span class="module-card__icon">
+            <svg viewBox="0 0 24 24">
+              <path d="M3 12a9 9 0 1 0 3-6.7"/>
+              <path d="M3 5v5h5"/>
+              <path d="M12 7v5l4 2"/>
+            </svg>
+          </span>
+
+          <h3>
+            Consultar historial
+          </h3>
+
+          <p>
+            Consulta las evaluaciones de ciclos anteriores
+            y su estado.
+          </p>
+
+          <span class="module-card__arrow">
+            Entrar
+            <svg viewBox="0 0 24 24">
+              <path d="M5 12h14"/>
+              <path d="M13 6l6 6-6 6"/>
+            </svg>
+          </span>
+
+        </button>
+
+
+        <!-- IA -->
+
+        <button
+          type="button"
+          class="module-card"
+          data-target="recomendaciones"
+        >
+
+          <span class="module-card__icon">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7L12 3z"/>
+              <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z"/>
+            </svg>
+          </span>
+
+          <h3>
+            Recomendaciones de IA
+          </h3>
+
+          <p>
+            Sugerencias generadas a partir del reporte
+            de tu evaluación.
+          </p>
+
+          <span class="module-card__arrow">
+            Entrar
+            <svg viewBox="0 0 24 24">
+              <path d="M5 12h14"/>
+              <path d="M13 6l6 6-6 6"/>
+            </svg>
+          </span>
+
+        </button>
+
+      </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         EVALUACIÓN
+    ====================================================== -->
+
+    <section class="view" id="view-evaluacion">
+
+      <div class="view__head">
+
+        <button
+          type="button"
+          class="back-btn"
+          data-target="home"
+          aria-label="Volver al inicio"
+        >
+          <svg viewBox="0 0 24 24">
+            <path d="M19 12H5"/>
+            <path d="M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+
+        <div>
+
+          <h2>
+            Realizar evaluación
+          </h2>
+
+          <p>
+            Ciclo 2026-II · Define meta, avance y peso por criterio
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div class="panel">
+
+        <div
+          class="criteria"
+          id="criteriaList"
+        ></div>
+
+
+        <div class="totals-bar">
+
+          <div class="totals-bar__item">
+
+            <span>
+              Peso acumulado
+            </span>
+
+            <strong id="pesoAcumulado">
+              0%
+            </strong>
+
+          </div>
+
+
+          <div class="totals-bar__item">
+
+            <span>
+              Puntaje acumulado ponderado
+            </span>
+
+            <strong id="puntajeAcumulado">
+              0%
+            </strong>
+
+          </div>
+
+
+          <div class="totals-bar__actions">
+
+            <button
+              type="button"
+              class="btn btn--ghost"
+              id="guardarBorradorBtn"
+            >
+              Guardar borrador
+            </button>
+
+            <button
+              type="button"
+              class="btn btn--primary"
+              id="generarReporteBtn"
+            >
+              Generar reporte en PDF
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         RESULTADOS
+    ====================================================== -->
+
+    <section class="view" id="view-resultados">
+
+      <div class="view__head">
+
+        <button
+          type="button"
+          class="back-btn"
+          data-target="home"
+          aria-label="Volver al inicio"
+        >
+          <svg viewBox="0 0 24 24">
+            <path d="M19 12H5"/>
+            <path d="M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+
+        <div>
+
+          <h2>
+            Consultar resultados
+          </h2>
+
+          <p>
+            Ciclo 2026-II · Puntaje por competencia
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div class="panel">
+
+        <div class="results">
+
+          <div class="result-row">
+
+            <div class="result-row__label">
+              Calidad del trabajo
+            </div>
+
+            <div class="result-row__bar">
+              <div
+                class="result-row__fill"
+                style="width:82%"
+              ></div>
+            </div>
+
+            <div class="result-row__value">
+              82%
+            </div>
+
+          </div>
+
+
+          <div class="result-row">
+
+            <div class="result-row__label">
+              Trabajo en equipo
+            </div>
+
+            <div class="result-row__bar">
+              <div
+                class="result-row__fill"
+                style="width:91%"
+              ></div>
+            </div>
+
+            <div class="result-row__value">
+              91%
+            </div>
+
+          </div>
+
+
+          <div class="result-row">
+
+            <div class="result-row__label">
+              Cumplimiento de metas
+            </div>
+
+            <div class="result-row__bar">
+              <div
+                class="result-row__fill"
+                style="width:64%"
+              ></div>
+            </div>
+
+            <div class="result-row__value">
+              64%
+            </div>
+
+          </div>
+
+
+          <div class="result-row">
+
+            <div class="result-row__label">
+              Comunicación
+            </div>
+
+            <div class="result-row__bar">
+              <div
+                class="result-row__fill"
+                style="width:78%"
+              ></div>
+            </div>
+
+            <div class="result-row__value">
+              78%
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="results-summary">
+
+          <div class="summary-chip">
+            <span>Puntaje general</span>
+            <strong>78.7%</strong>
+          </div>
+
+          <div class="summary-chip">
+            <span>Nivel alcanzado</span>
+            <strong>Competente</strong>
+          </div>
+
+          <div class="summary-chip">
+            <span>Frente a ciclo anterior</span>
+            <strong>+5.2%</strong>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         HISTORIAL
+    ====================================================== -->
+
+    <section class="view" id="view-historial">
+
+      <div class="view__head">
+
+        <button
+          type="button"
+          class="back-btn"
+          data-target="home"
+          aria-label="Volver al inicio"
+        >
+          <svg viewBox="0 0 24 24">
+            <path d="M19 12H5"/>
+            <path d="M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+
+        <div>
+
+          <h2>
+            Consultar historial
+          </h2>
+
+          <p>
+            Evaluaciones de ciclos anteriores
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div class="panel">
+
+        <table>
+
+          <thead>
+
+            <tr>
+              <th>Ciclo</th>
+              <th>Tipo</th>
+              <th>Puntaje</th>
+              <th>Estado</th>
+            </tr>
+
+          </thead>
+
+          <tbody>
+
+            <tr>
+              <td>2026-I</td>
+              <td>Autoevaluación</td>
+              <td>75.4%</td>
+              <td>
+                <span class="status-pill status-pill--ok">
+                  Cerrada
+                </span>
+              </td>
+            </tr>
+
+            <tr>
+              <td>2025-II</td>
+              <td>Evaluación de líder</td>
+              <td>69.1%</td>
+              <td>
+                <span class="status-pill status-pill--ok">
+                  Cerrada
+                </span>
+              </td>
+            </tr>
+
+            <tr>
+              <td>2025-I</td>
+              <td>Autoevaluación</td>
+              <td>58.0%</td>
+              <td>
+                <span class="status-pill status-pill--warn">
+                  Con observaciones
+                </span>
+              </td>
+            </tr>
+
+            <tr>
+              <td>2024-II</td>
+              <td>Evaluación de líder</td>
+              <td>—</td>
+              <td>
+                <span class="status-pill status-pill--pend">
+                  No presentada
+                </span>
+              </td>
+            </tr>
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         RECOMENDACIONES IA
+    ====================================================== -->
+
+    <section class="view" id="view-recomendaciones">
+
+      <div class="view__head">
+
+        <button
+          type="button"
+          class="back-btn"
+          data-target="home"
+          aria-label="Volver al inicio"
+        >
+          <svg viewBox="0 0 24 24">
+            <path d="M19 12H5"/>
+            <path d="M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+
+        <div>
+
+          <h2>
+            Recomendaciones de IA
+          </h2>
+
+          <p>
+            Generadas a partir del reporte de "Realizar evaluación"
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="panel"
+        id="recoPanel"
+      >
+
+        <div class="reco-empty">
+
+          <div class="reco-empty__icon">
+
+            <svg viewBox="0 0 24 24">
+              <path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7L12 3z"/>
+            </svg>
+
+          </div>
+
+          <h3>
+            Aún no hay recomendaciones
+          </h3>
+
+          <p>
+            Genera el reporte en el módulo
+            "Realizar evaluación" para que la IA analice
+            tus criterios y sugiera acciones de mejora.
+          </p>
+
+          <button
+            type="button"
+            class="btn btn--primary"
+            data-target="evaluacion"
+          >
+            Ir a realizar evaluación
+          </button>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+</div>
+
+
+<!-- =========================================================
+     EXIT OVERLAY
+     INICIA COMPLETAMENTE OCULTO
+========================================================= -->
+
+<div
+  class="exit-overlay"
+  id="exitOverlay"
+  hidden
+  aria-hidden="true"
+>
+
+  <div
+    class="exit-card"
+    id="exitCardContent"
+    role="dialog"
+    aria-modal="true"
+  ></div>
+
+</div>
+
+
+<script>
+
+  /* =========================================================
+     NAVEGACIÓN
+  ========================================================= */
+
+  const views = document.querySelectorAll('.view');
+
+  const railBtns = document.querySelectorAll(
+    '.rail__btn[data-target]'
+  );
+
+
+  function goTo(target){
+
+    /*
+      Antes de cambiar de pantalla nos aseguramos
+      de cerrar cualquier modal.
+    */
+
+    closeExitModal();
+
+
+    views.forEach(view => {
+
+      view.classList.toggle(
+        'is-active',
+        view.id === 'view-' + target
+      );
+
+    });
+
+
+    railBtns.forEach(button => {
+
+      button.setAttribute(
+        'aria-current',
+        button.dataset.target === target
+          ? 'true'
+          : 'false'
+      );
+
+    });
+
+
+    window.scrollTo({
+      top:0,
+      behavior:'smooth'
+    });
+
+  }
+
+
+  /*
+    Delegación de eventos para todos los botones
+    data-target.
+  */
+
+  document.addEventListener('click', event => {
+
+    const element =
+      event.target.closest('[data-target]');
+
+    if(!element){
+      return;
+    }
+
+    goTo(element.dataset.target);
+
+  });
+
+
+  /* =========================================================
+     AVATAR
+  ========================================================= */
+
+  const avatarInput =
+    document.getElementById('avatarInput');
+
+  const avatarImg =
+    document.getElementById('avatarImg');
+
+
+  document
+    .getElementById('avatarEditBtn')
+    .addEventListener('click', () => {
+
+      avatarInput.click();
+
+    });
+
+
+  avatarInput.addEventListener('change', event => {
+
+    const file = event.target.files[0];
+
+    if(!file){
+      return;
+    }
+
+    /*
+      Solo imágenes.
+    */
+
+    if(!file.type.startsWith('image/')){
+      alert('Selecciona un archivo de imagen válido.');
+      avatarInput.value = '';
+      return;
+    }
+
+
+    const reader = new FileReader();
+
+
+    reader.onload = event => {
+
+      avatarImg.src = event.target.result;
+
+    };
+
+
+    reader.readAsDataURL(file);
+
+  });
+
+
+  /* =========================================================
+     DATOS DE CRITERIOS
+  ========================================================= */
+
+  const criteriaData = [
+
+    {
+      id:'c1',
+      nombre:'Calidad del trabajo',
+      peso:30,
+      meta:90,
+      avance:82,
+
+      tips:{
+        alta:'Establece revisiones de control de calidad antes de cada entrega y agenda retroalimentación semanal con tu líder.',
+        media:'Incorpora una lista de verificación previa a la entrega de los productos más críticos.',
+        baja:'Mantén el estándar actual y documenta las prácticas que te están funcionando.',
+        fortaleza:'Comparte tu método de control de calidad con el resto del equipo como referencia.'
+      }
+    },
+
+    {
+      id:'c2',
+      nombre:'Trabajo en equipo',
+      peso:25,
+      meta:85,
+      avance:91,
+
+      tips:{
+        alta:'Participa activamente en las reuniones de equipo y solicita retroalimentación sobre tu rol dentro de este.',
+        media:'Propón un espacio quincenal de coordinación con las áreas con las que más interactúas.',
+        baja:'Sigue reforzando la colaboración cruzada; busca un proyecto conjunto con otra área.',
+        fortaleza:'Considera liderar una iniciativa de mentoría o integración para nuevos colaboradores.'
+      }
+    },
+
+    {
+      id:'c3',
+      nombre:'Cumplimiento de metas',
+      peso:25,
+      meta:90,
+      avance:64,
+
+      tips:{
+        alta:'Prioriza tus indicadores clave y define hitos semanales con tu líder para cerrar la brecha frente a la meta.',
+        media:'Revisa la planificación de tus entregables y ajusta tiempos para los de mayor impacto.',
+        baja:'Continúa el seguimiento habitual de indicadores; el avance está cerca de la meta.',
+        fortaleza:'Documenta tu método de planificación para replicarlo en próximos ciclos.'
+      }
+    },
+
+    {
+      id:'c4',
+      nombre:'Comunicación',
+      peso:20,
+      meta:85,
+      avance:78,
+
+      tips:{
+        alta:'Practica la síntesis de mensajes clave y solicita retroalimentación directa tras tus presentaciones.',
+        media:'Utiliza resúmenes escritos después de reuniones importantes para reforzar los acuerdos.',
+        baja:'Sigue afinando la claridad de tus mensajes en espacios formales.',
+        fortaleza:'Apoya a otros colaboradores en la preparación de comunicaciones importantes.'
+      }
+    }
+
+  ];
+
+
+  let reportGenerated = false;
+
+
+  /* =========================================================
+     RENDER CRITERIOS
+  ========================================================= */
+
+  function renderCriteria(){
+
+    const list =
+      document.getElementById('criteriaList');
+
+
+    list.innerHTML = criteriaData.map(c => `
+
+      <div class="criterion">
+
+        <div class="criterion__top">
+
+          <h4>
+            ${c.nombre}
+          </h4>
+
+          <span class="peso-badge">
+            Peso ${c.peso}%
+          </span>
+
+        </div>
+
+
+        <div class="crit-stats">
+
+          <div class="crit-stat crit-stat--meta">
+
+            <label for="${c.id}-meta">
+              Meta
+            </label>
+
+            <input
+              type="number"
+              id="${c.id}-meta"
+              min="0"
+              max="100"
+              value="${c.meta}"
+            >
+
+          </div>
+
+
+          <div class="crit-stat crit-stat--avance">
+
+            <div
+              style="
+                display:flex;
+                flex-direction:column;
+                gap:6px;
+                flex:1;
+              "
+            >
+
+              <label for="${c.id}-avance">
+                Avance
+              </label>
+
+              <input
+                type="range"
+                id="${c.id}-avance"
+                min="0"
+                max="100"
+                value="${c.avance}"
+              >
+
+            </div>
+
+
+            <span
+              class="crit-stat__value"
+              id="${c.id}-avance-val"
+            >
+              ${c.avance}%
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <div class="crit-bar">
+
+          <div
+            class="crit-bar__fill"
+            id="${c.id}-fill"
+            style="width:${c.avance}%"
+          ></div>
+
+          <div
+            class="crit-bar__meta"
+            id="${c.id}-metamark"
+            style="left:${c.meta}%"
+          ></div>
+
+        </div>
+
+
+        <div class="crit-bar__caption">
+
+          <span>
+            Avance actual
+          </span>
+
+          <span>
+            Meta ▏
+          </span>
+
+        </div>
+
+      </div>
+
+    `).join('');
+
+
+    /*
+      Eventos de cada criterio.
+    */
+
+    criteriaData.forEach(c => {
+
+      const avanceInput =
+        document.getElementById(
+          c.id + '-avance'
+        );
+
+
+      const metaInput =
+        document.getElementById(
+          c.id + '-meta'
+        );
+
+
+      avanceInput.addEventListener(
+        'input',
+        event => {
+
+          c.avance =
+            Number(event.target.value);
+
+
+          document.getElementById(
+            c.id + '-avance-val'
+          ).textContent =
+            c.avance + '%';
+
+
+          document.getElementById(
+            c.id + '-fill'
+          ).style.width =
+            c.avance + '%';
+
+
+          updateTotals();
+
+        }
+      );
+
+
+      metaInput.addEventListener(
+        'input',
+        event => {
+
+          let val =
+            Number(event.target.value);
+
+
+          if(isNaN(val)){
+            val = 0;
+          }
+
+
+          val =
+            Math.max(
+              0,
+              Math.min(100,val)
+            );
+
+
+          c.meta = val;
+
+
+          document.getElementById(
+            c.id + '-metamark'
+          ).style.left =
+            c.meta + '%';
+
+
+          updateTotals();
+
+        }
+      );
+
+    });
+
+  }
+
+
+  /* =========================================================
+     CÁLCULOS
+  ========================================================= */
+
+  function computeTotals(){
+
+    const pesoAcumulado =
+      criteriaData.reduce(
+        (sum,c) => sum + c.peso,
+        0
+      );
+
+
+    const puntajeAcumulado =
+      criteriaData.reduce(
+        (sum,c) =>
+          sum + (c.avance * c.peso / 100),
+        0
+      );
+
+
+    return {
+      pesoAcumulado,
+      puntajeAcumulado
+    };
+
+  }
+
+
+  function updateTotals(){
+
+    const {
+      pesoAcumulado,
+      puntajeAcumulado
+    } = computeTotals();
+
+
+    document.getElementById(
+      'pesoAcumulado'
+    ).textContent =
+      pesoAcumulado + '%';
+
+
+    document.getElementById(
+      'puntajeAcumulado'
+    ).textContent =
+      puntajeAcumulado.toFixed(1) + '%';
+
+  }
+
+
+  /* =========================================================
+     NIVEL
+  ========================================================= */
+
+  function nivelPara(score){
+
+    if(score >= 90){
+      return 'Sobresaliente';
+    }
+
+    if(score >= 75){
+      return 'Competente';
+    }
+
+    if(score >= 60){
+      return 'En desarrollo';
+    }
+
+    return 'Inicial';
+
+  }
+
+
+  /* =========================================================
+     PDF
+  ========================================================= */
+
+  function generatePDF(total){
+
+    if(!window.jspdf){
+
+      alert(
+        'No se pudo cargar el generador de PDF. Revisa tu conexión a internet.'
+      );
+
+      return;
+
+    }
+
+
+    const {
+      jsPDF
+    } = window.jspdf;
+
+
+    const doc = new jsPDF();
+
+
+    doc.setFont(
+      'helvetica',
+      'bold'
+    );
+
+    doc.setFontSize(16);
+
+    doc.text(
+      'Reporte de Evaluacion de Desempeno',
+      14,
+      20
+    );
+
+
+    doc.setFontSize(10);
+
+    doc.setFont(
+      'helvetica',
+      'normal'
+    );
+
+
+    doc.text(
+      'Ciclo 2026-II - Generado el ' +
+      new Date().toLocaleDateString('es-CO'),
+      14,
+      27
+    );
+
+
+    let y = 42;
+
+
+    doc.setFont(
+      'helvetica',
+      'bold'
+    );
+
+
+    doc.text(
+      'Criterio',
+      14,
+      y
+    );
+
+    doc.text(
+      'Meta',
+      108,
+      y
+    );
+
+    doc.text(
+      'Avance',
+      130,
+      y
+    );
+
+    doc.text(
+      'Peso',
+      155,
+      y
+    );
+
+    doc.text(
+      'Ponderado',
+      175,
+      y
+    );
+
+
+    doc.line(
+      14,
+      y + 2,
+      196,
+      y + 2
+    );
+
+
+    doc.setFont(
+      'helvetica',
+      'normal'
+    );
+
+
+    y += 9;
+
+
+    criteriaData.forEach(c => {
+
+      const pond =
+        c.avance * c.peso / 100;
+
+
+      doc.text(
+        c.nombre,
+        14,
+        y
+      );
+
+      doc.text(
+        c.meta + '%',
+        108,
+        y
+      );
+
+      doc.text(
+        c.avance + '%',
+        130,
+        y
+      );
+
+      doc.text(
+        c.peso + '%',
+        155,
+        y
+      );
+
+      doc.text(
+        pond.toFixed(1) + '%',
+        175,
+        y
+      );
+
+
+      y += 8;
+
+    });
+
+
+    y += 4;
+
+
+    doc.line(
+      14,
+      y,
+      196,
+      y
+    );
+
+
+    y += 10;
+
+
+    doc.setFont(
+      'helvetica',
+      'bold'
+    );
+
+    doc.setFontSize(12);
+
+
+    doc.text(
+      'Puntaje acumulado ponderado: ' +
+      total.toFixed(1) +
+      '%',
+      14,
+      y
+    );
+
+
+    y += 8;
+
+
+    doc.text(
+      'Nivel alcanzado: ' +
+      nivelPara(total),
+      14,
+      y
+    );
+
+
+    doc.save(
+      'reporte-evaluacion.pdf'
+    );
+
+  }
+
+
+  /* =========================================================
+     RECOMENDACIONES
+  ========================================================= */
+
+  function buildRecommendations(total){
+
+    const panel =
+      document.getElementById(
+        'recoPanel'
+      );
+
+
+    const items =
+      criteriaData.map(c => {
+
+        const brecha =
+          c.meta - c.avance;
+
+
+        let tier;
+
+
+        if(c.avance >= c.meta){
+
+          tier = 'fortaleza';
+
+        }
+        else if(brecha > 15){
+
+          tier = 'alta';
+
+        }
+        else if(brecha >= 5){
+
+          tier = 'media';
+
+        }
+        else{
+
+          tier = 'baja';
+
+        }
+
+
+        return {
+          ...c,
+          brecha,
+          tier
+        };
+
+      });
+
+
+    const order = {
+      alta:0,
+      media:1,
+      baja:2,
+      fortaleza:3
+    };
+
+
+    items.sort(
+      (a,b) =>
+        order[a.tier] -
+        order[b.tier]
+    );
+
+
+    const badgeLabel = {
+
+      alta:'Prioridad alta',
+      media:'Prioridad media',
+      baja:'Prioridad baja',
+      fortaleza:'Fortaleza'
+
+    };
+
+
+    const prioritario =
+      items.find(
+        i => i.tier === 'alta'
+      ) ||
+      items.find(
+        i => i.tier === 'media'
+      ) ||
+      items[0];
+
+
+    panel.innerHTML = `
+
+      <div class="reco-summary">
+
+        <div class="summary-chip">
+
+          <span>
+            Puntaje acumulado
+          </span>
+
+          <strong>
+            ${total.toFixed(1)}%
+          </strong>
+
+        </div>
+
+
+        <div class="summary-chip">
+
+          <span>
+            Nivel alcanzado
+          </span>
+
+          <strong>
+            ${nivelPara(total)}
+          </strong>
+
+        </div>
+
+
+        <div class="summary-chip">
+
+          <span>
+            Criterio prioritario
+          </span>
+
+          <strong>
+            ${prioritario.nombre}
+          </strong>
+
+        </div>
+
+      </div>
+
+
+      <div class="reco-list">
+
+        ${items.map(i => `
+
+          <div class="reco-card">
+
+            <span
+              class="
+                reco-card__badge
+                reco-card__badge--${i.tier}
+              "
+            >
+              ${badgeLabel[i.tier]}
+            </span>
+
+
+            <div class="reco-card__body">
+
+              <h4>
+                ${i.nombre}
+              </h4>
+
+              <p>
+                ${i.tips[i.tier]}
+              </p>
+
+              <span class="reco-tag">
+                Meta ${i.meta}%
+                ·
+                Avance ${i.avance}%
+                ·
+                Peso ${i.peso}%
+              </span>
+
+            </div>
+
+          </div>
+
+        `).join('')}
+
+      </div>
+
+
+      <div class="reco-note">
+
+        <svg viewBox="0 0 24 24">
+          <path d="M12 16v-4"/>
+          <path d="M12 8h.01"/>
+          <circle
+            cx="12"
+            cy="12"
+            r="9"
+          />
+        </svg>
+
+        <span>
+          Estas recomendaciones se generan automáticamente
+          a partir de los valores de meta, avance y peso
+          registrados en "Realizar evaluación".
+          Actualiza el reporte cuando cambien tus resultados.
+        </span>
+
+      </div>
+
+    `;
+
+  }
+
+
+  /* =========================================================
+     GENERAR REPORTE
+  ========================================================= */
+
+  document
+    .getElementById('generarReporteBtn')
+    .addEventListener(
+      'click',
+      () => {
+
+        const {
+          puntajeAcumulado
+        } = computeTotals();
+
+
+        reportGenerated = true;
+
+
+        buildRecommendations(
+          puntajeAcumulado
+        );
+
+
+        generatePDF(
+          puntajeAcumulado
+        );
+
+      }
+    );
+
+
+  /* =========================================================
+     GUARDAR BORRADOR
+  ========================================================= */
+
+  document
+    .getElementById('guardarBorradorBtn')
+    .addEventListener(
+      'click',
+      () => {
+
+        /*
+          Guardamos los valores localmente para que
+          no se pierdan al recargar la página.
+        */
+
+        try{
+
+          localStorage.setItem(
+            'evaluacionCriteria',
+            JSON.stringify(criteriaData)
+          );
+
+          alert(
+            'Borrador guardado correctamente.'
+          );
+
+        }
+        catch(error){
+
+          console.error(error);
+
+          alert(
+            'No fue posible guardar el borrador.'
+          );
+
+        }
+
+      }
+    );
+
+
+  /* =========================================================
+     CARGAR BORRADOR
+  ========================================================= */
+
+  function loadDraft(){
+
+    try{
+
+      const saved =
+        localStorage.getItem(
+          'evaluacionCriteria'
+        );
+
+
+      if(!saved){
+        return;
+      }
+
+
+      const parsed =
+        JSON.parse(saved);
+
+
+      if(!Array.isArray(parsed)){
+        return;
+      }
+
+
+      parsed.forEach(savedCriterion => {
+
+        const criterion =
+          criteriaData.find(
+            c => c.id === savedCriterion.id
+          );
+
+
+        if(!criterion){
+          return;
+        }
+
+
+        if(
+          typeof savedCriterion.meta === 'number'
+        ){
+
+          criterion.meta =
+            Math.max(
+              0,
+              Math.min(
+                100,
+                savedCriterion.meta
+              )
+            );
+
+        }
+
+
+        if(
+          typeof savedCriterion.avance === 'number'
+        ){
+
+          criterion.avance =
+            Math.max(
+              0,
+              Math.min(
+                100,
+                savedCriterion.avance
+              )
+            );
+
+        }
+
+      });
+
+    }
+    catch(error){
+
+      console.error(
+        'No se pudo cargar el borrador:',
+        error
+      );
+
+    }
+
+  }
+
+
+  /* =========================================================
+     EXIT MODAL - SOLUCIÓN PRINCIPAL
+  ========================================================= */
+
+  const exitOverlay =
+    document.getElementById(
+      'exitOverlay'
+    );
+
+
+  const exitCardContent =
+    document.getElementById(
+      'exitCardContent'
+    );
+
+
+  /*
+    CERRAR MODAL
+
+    Esta función es segura incluso si el modal
+    ya estaba cerrado.
+  */
+
+  function closeExitModal(){
+
+    if(!exitOverlay){
+      return;
+    }
+
+
+    exitOverlay.classList.remove(
+      'is-open'
+    );
+
+
+    exitOverlay.hidden = true;
+
+
+    exitOverlay.setAttribute(
+      'aria-hidden',
+      'true'
+    );
+
+
+    exitCardContent.innerHTML = '';
+
+  }
+
+
+  /*
+    ABRIR MODAL
+  */
+
+  function openExitModal(){
+
+    /*
+      Primero limpiamos cualquier estado anterior.
+    */
+
+    closeExitModal();
+
+
+    exitCardContent.innerHTML = `
+
+      <button
+        type="button"
+        class="exit-close"
+        id="closeExitBtn"
+        aria-label="Cerrar"
+        title="Cerrar"
+      >
+        ×
+      </button>
+
+
+      <h2>
+        ¿Salir del panel?
+      </h2>
+
+
+      <p>
+        Se cerrará tu sesión actual en el sistema
+        de evaluación de desempeño.
+      </p>
+
+
+      <div class="exit-actions">
+
+        <button
+          type="button"
+          class="btn btn--ghost"
+          id="cancelExitBtn"
+        >
+          Cancelar
+        </button>
+
+
+        <button
+          type="button"
+          class="btn btn--primary"
+          id="confirmExitBtn"
+        >
+          Salir
+        </button>
+
+      </div>
+
+    `;
+
+
+    /*
+      Mostramos el overlay DESPUÉS de tener
+      contenido dentro.
+    */
+
+    exitOverlay.hidden = false;
+
+    exitOverlay.classList.add(
+      'is-open'
+    );
+
+    exitOverlay.setAttribute(
+      'aria-hidden',
+      'false'
+    );
+
+
+    /*
+      Eventos del modal.
+    */
+
+    document
+      .getElementById('closeExitBtn')
+      .addEventListener(
+        'click',
+        closeExitModal
+      );
+
+
+    document
+      .getElementById('cancelExitBtn')
+      .addEventListener(
+        'click',
+        closeExitModal
+      );
+
+
+    document
+      .getElementById('confirmExitBtn')
+      .addEventListener(
+        'click',
+        showLoggedOut
+      );
+
+  }
+
+
+  /*
+    SESIÓN CERRADA
+  */
+
+  function showLoggedOut(){
+
+    exitCardContent.innerHTML = `
+
+      <button
+        type="button"
+        class="exit-close"
+        id="closeLoggedOutBtn"
+        aria-label="Cerrar"
+        title="Cerrar"
+      >
+        ×
+      </button>
+
+
+      <h2>
+        Sesión cerrada
+      </h2>
+
+
+      <p>
+        Has salido del panel de evaluación de desempeño.
+      </p>
+
+
+      <div class="exit-actions">
+
+        <button
+          type="button"
+          class="btn btn--primary"
+          id="reenterBtn"
+        >
+          Volver a iniciar sesión
+        </button>
+
+      </div>
+
+    `;
+
+
+    document
+      .getElementById('closeLoggedOutBtn')
+      .addEventListener(
+        'click',
+        closeExitModal
+      );
+
+
+    document
+    .getElementById('reenterBtn')
+    .addEventListener(
+     'click',
+     () => {
+
+      // Eliminar la sesión
+      sessionStorage.removeItem('sesionActiva');
+      sessionStorage.removeItem('usuarioActivo');
+
+      // Ir nuevamente al login
+      window.location.href = 'login.html';
+
+      }
+    ); 
+
+  }
+
+
+  /*
+    BOTÓN SALIR
+  */
+
+  document
+    .getElementById('exitBtn')
+    .addEventListener(
+      'click',
+      openExitModal
+    );
+
+
+  /*
+    ESCAPE CIERRA EL MODAL
+  */
+
+  document.addEventListener(
+    'keydown',
+    event => {
+
+      if(
+        event.key === 'Escape' &&
+        exitOverlay.classList.contains('is-open')
+      ){
+
+        closeExitModal();
+
+      }
+
+    }
+  );
+
+
+  /*
+    CLIC EN EL FONDO OSCURO CIERRA EL MODAL
+  */
+
+  exitOverlay.addEventListener(
+    'click',
+    event => {
+
+      if(
+        event.target === exitOverlay
+      ){
+
+        closeExitModal();
+
+      }
+
+    }
+  );
+
+
+  /*
+    FUNCIÓN GLOBAL DE EMERGENCIA.
+
+    Si en algún momento el overlay vuelve a quedarse
+    bloqueado, se puede ejecutar desde la consola:
+
+        unlockPanel()
+
+    y la pantalla quedará desbloqueada.
+  */
+
+  window.unlockPanel = function(){
+
+    closeExitModal();
+
+  };
+
+
+  /* =========================================================
+     INICIALIZACIÓN
+  ========================================================= */
+
+  /*
+    Cargamos primero el borrador.
+  */
+
+  loadDraft();
+
+
+  /*
+    Después dibujamos los criterios con los valores
+    recuperados.
+  */
+
+  renderCriteria();
+
+
+  /*
+    Finalmente actualizamos los totales.
+  */
+
+  updateTotals();
+
+
+  /*
+    SEGURIDAD ADICIONAL:
+    garantizamos que al cargar la página el modal
+    SIEMPRE esté cerrado.
+  */
+
+  closeExitModal();
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,84 @@
+spring:
+  application:
+    name: evaluacion-desempeno
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  jackson:
+    default-property-inclusion: non_null
+
+app:
+  jwt:
+    # TODO (produccion): sobreescribir SIEMPRE via variable de entorno JWT_SECRET
+    # con un valor aleatorio de al menos 256 bits. Este valor por defecto es
+    # solo para desarrollo local y NO debe usarse en produccion.
+    secret: ${JWT_SECRET:dGFsZW50b2h1bWFuby1kZXNhcnJvbGxvLXNlY3JldC1rZXktMjU2LWJpdHMtbWluaW1v}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  datasource:
+    url: jdbc:h2:mem:talentodb;DB_CLOSE_DELAY=-1;NON_KEYWORDS=USER
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+logging:
+  level:
+    com.talentohumano.evaluacion: DEBUG
+    org.hibernate.SQL: DEBUG
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      # TODO: usar Flyway/Liquibase para migraciones controladas en produccion
+      # en vez de dejar que Hibernate mute el esquema automaticamente
+      # (ddl-auto: update aqui es una conveniencia para que el skeleton
+      # funcione de inmediato contra una base MySQL vacia).
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false
+
+  h2:
+    console:
+      enabled: false
+
+logging:
+  level:
+    com.talentohumano.evaluacion: INFO
