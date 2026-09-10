@@ -24,15 +24,21 @@ if (TH.Auth.usuarioActual()) {
 
 const demoUsersGrid = document.getElementById('demoUsersGrid');
 
-const demoPorRol = TH.DB.roles().map(rol => {
-  const usuario = TH.DB.usuarios().find(u => u.rolId === rol.id && u.estado === 'Activo');
-  return usuario ? { rol, usuario } : null;
-}).filter(Boolean);
+const demoUsuarios = TH.DEMO_USER_IDS.map(id => TH.DB.usuario(id)).filter(Boolean);
 
-demoUsersGrid.innerHTML = demoPorRol.map(({ rol, usuario }) => `
+function demoEtiqueta(usuario) {
+  if (usuario.rolId === 'admin') return 'Administrador';
+  const label = 'Colaborador · ' + TH.TIPO_CARGO_LABEL[usuario.tipoCargo];
+  const pares = TH.DB.paresDe(usuario.id).length;
+  const subalternos = TH.DB.subalternosDirectos(usuario.id).length;
+  const detalle = subalternos > 0 ? ' (con equipo a cargo)' : (usuario.jefeId ? '' : ' (sin jefe)');
+  return label + detalle;
+}
+
+demoUsersGrid.innerHTML = demoUsuarios.map(usuario => `
   <button type="button" class="demo-user-btn" data-correo="${usuario.correo}" data-password="${usuario.password}">
-    <span class="demo-user-btn__rol">${rol.nombre}</span>
-    <span class="demo-user-btn__nombre">${usuario.nombre}</span>
+    <span class="demo-user-btn__rol">${demoEtiqueta(usuario)}</span>
+    <span class="demo-user-btn__nombre">${usuario.nombre} · ${usuario.cargo}</span>
   </button>
 `).join('');
 

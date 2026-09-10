@@ -56,7 +56,8 @@
         const activar = () => {
           TH.DB.periodos().forEach(p => { if (p.estado === 'Activo') TH.DB.actualizar('periodos', p.id, { estado: 'Cerrado' }); });
           TH.DB.actualizar('periodos', b.dataset.activar, { estado: 'Activo' });
-          UI.toast('Período activado.');
+          const generadas = TH.DB.generarEvaluacionesPeriodo(b.dataset.activar);
+          UI.toast(generadas > 0 ? `Período activado. Se generaron ${generadas} evaluaciones 360° (RF-28).` : 'Período activado.');
           pintar();
         };
         if (actual) {

@@ -1,13 +1,13 @@
 /* =========================================================================
    MODULES.resultados — Consulta de resultados (RF-14, RF-15, RF-16)
-   Cada usuario consulta resultados según el alcance de su rol.
+   Cada usuario consulta resultados según el alcance de su rol: un
+   colaborador ve los suyos (y los de su equipo, si tiene personas a
+   cargo); el administrador ve todos.
 ========================================================================= */
 
 (function () {
   'use strict';
   window.Modules = window.Modules || {};
-
-  const TIPO_LABEL = { JEFE: 'Jefe inmediato', GERENTE: 'Gerente', CLIENTE: 'Cliente / externo' };
 
   window.Modules.resultados = function (root, ctx) {
     const visibles = TH.DB.colaboradoresVisiblesPara(ctx.usuario).filter(u => u.estado === 'Activo');
@@ -39,42 +39,37 @@
           </div>
         </div>
 
+        <div class="panel" style="margin-bottom:18px;">
+          <p class="section-label">${colaborador.nombre} · ${colaborador.cargo} · Nivel ${TH.TIPO_CARGO_LABEL[colaborador.tipoCargo]}</p>
+        </div>
+
         ${evaluaciones.length === 0 ? `
           <div class="panel"><div class="empty-state">
             <div class="empty-state__icon">${THPanel.icon('resultados')}</div>
             <h3>Sin evaluaciones registradas</h3>
-            <p>${colaborador.nombre} no tiene evaluaciones asignadas en ${periodo.nombre}.</p>
+            <p>${colaborador.nombre} no tiene evaluaciones 360° en ${periodo.nombre}.</p>
           </div></div>
         ` : `
           <div class="panel" style="margin-bottom:18px;">
             <p class="section-label">Resultado por evaluador — RF-13: cada evaluación se conserva por separado</p>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Evaluador</th><th>Tipo</th><th>Estado</th><th>Competencias</th><th>Comportamiento</th><th>General</th></tr></thead>
+                <thead><tr><th>Evaluador</th><th>Tipo</th><th>Estado</th><th>Institucional</th><th>Específico</th><th>Resultado</th></tr></thead>
                 <tbody>
                   ${evaluaciones.map(ev => {
                     const evaluador = TH.DB.usuario(ev.evaluadorId);
                     const r = TH.DB.resultado(ev);
-                    const tieneAlgo = Object.keys(ev.calificaciones.competencias).length > 0;
                     return `
                       <tr>
-                        <td>${evaluador ? evaluador.nombre : '—'}</td>
-                        <td>${TIPO_LABEL[ev.tipoEvaluador] || ev.tipoEvaluador}</td>
+                        <td>${evaluador ? evaluador.nombre : '—'}${ev.tipoEvaluador === 'AUTO' ? ' <span class="cell-sub">(autoevaluación)</span>' : ''}</td>
+                        <td>${TH.TIPOS_EVALUADOR[ev.tipoEvaluador]}</td>
                         <td><span class="pill ${['Consolidada', 'Cerrada', 'Finalizada'].includes(ev.estado) ? 'pill--ok' : (ev.estado === 'En proceso' ? 'pill--amber' : 'pill--pend')}">${ev.estado}</span></td>
-                        <td>${tieneAlgo ? r.resultadoCompetencias + '%' : '—'}</td>
-                        <td>${tieneAlgo ? r.resultadoComportamiento + '%' : '—'}</td>
-                        <td><strong>${tieneAlgo ? r.resultadoGeneral + '%' : '—'}</strong></td>
+                        <td>${r && r.scoreInstitucional !== null ? r.scoreInstitucional + '/5' : '—'}</td>
+                        <td>${r && r.scoreEspecifico !== null ? r.scoreEspecifico + '/5' : '—'}</td>
+                        <td><strong>${r ? r.score + '/5' : '—'}</strong></td>
                       </tr>
                     `;
                   }).join('')}
-                  ${consolidado ? `
-                    <tr style="background:var(--fog);">
-                      <td colspan="3"><strong>Promedio consolidado</strong></td>
-                      <td><strong>${consolidado.resultadoCompetencias}%</strong></td>
-                      <td><strong>${consolidado.resultadoComportamiento}%</strong></td>
-                      <td><strong>${consolidado.resultadoGeneral}%</strong></td>
-                    </tr>
-                  ` : ''}
                 </tbody>
               </table>
             </div>
@@ -82,14 +77,25 @@
 
           ${consolidado ? `
             <div class="panel">
-              <p class="section-label">Resultado consolidado (RF-15) — regla: ${consolidado.reglaConsolidacion}</p>
-              <div class="summary-chips">
-                <div class="summary-chip"><span>Resultado general</span><strong>${consolidado.resultadoGeneral}%</strong></div>
-                <div class="summary-chip"><span>Nivel alcanzado</span><strong>${TH.nivelPara(consolidado.resultadoGeneral)}</strong></div>
-                <div class="summary-chip"><span>Evaluadores</span><strong>${consolidado.completas}/${consolidado.evaluadores} completados</strong></div>
+              <p class="section-label">Resultado consolidado (RF-15)</p>
+              <p style="color:var(--ink-soft);font-size:.8rem;margin:-6px 0 16px;">${consolidado.reglaConsolidacion}</p>
+              <div class="summary-chips" style="margin-bottom:20px;">
+                <div class="summary-chip"><span>Resultado general</span><strong>${consolidado.scoreGeneral}/5</strong></div>
+                <div class="summary-chip"><span>Equivalente</span><strong>${consolidado.pctGeneral}%</strong></div>
+                <div class="summary-chip"><span>Nivel alcanzado</span><strong>${consolidado.descriptor}</strong></div>
+                <div class="summary-chip"><span>Evaluaciones</span><strong>${consolidado.evaluadoresCompletos}/${consolidado.evaluadoresAsignados} completadas</strong></div>
+              </div>
+              <div class="results">
+                ${['JEFE', 'PAR', 'AUTO', 'SUBALTERNO', 'SST'].filter(t => consolidado.detalle[t] !== undefined).map(t => `
+                  <div class="result-row">
+                    <div class="result-row__label">${TH.TIPOS_EVALUADOR[t]}</div>
+                    <div class="result-row__bar"><div class="result-row__fill" style="width:${consolidado.detalle[t] / 5 * 100}%"></div></div>
+                    <div class="result-row__value">${consolidado.detalle[t]}/5</div>
+                  </div>
+                `).join('')}
               </div>
             </div>
-          ` : ''}
+          ` : `<div class="panel"><p style="color:var(--ink-soft);font-size:.87rem;margin:0;">Aún no hay suficientes evaluaciones calificadas para consolidar el resultado de este período.</p></div>`}
         `}
       `;
 

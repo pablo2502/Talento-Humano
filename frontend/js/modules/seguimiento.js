@@ -6,13 +6,16 @@
   'use strict';
   window.Modules = window.Modules || {};
 
-  function promedioPorItem(colaboradorId, periodoId, tipo) {
-    const evs = TH.DB.evaluacionesDe(colaboradorId, periodoId);
+  // Promedio por indicador (excluyendo SST) a través de todas las
+  // evaluaciones de un colaborador en un período, para detectar avances.
+  function promedioPorIndicador(colaboradorId, periodoId) {
+    const evs = TH.DB.evaluacionesDe(colaboradorId, periodoId).filter(e => e.tipoEvaluador !== 'SST');
     const acc = {};
     evs.forEach(ev => {
-      Object.entries(ev.calificaciones[tipo] || {}).forEach(([id, val]) => {
+      Object.entries(ev.calificaciones.indicadores || {}).forEach(([id, val]) => {
+        if (val === 'NO') return;
         acc[id] = acc[id] || [];
-        acc[id].push(val);
+        acc[id].push(Number(val));
       });
     });
     const out = {};
@@ -45,19 +48,22 @@
       const primero = historial[0];
       const ultimo = historial[historial.length - 1];
 
-      const compPrimero = promedioPorItem(colaboradorId, primero.periodo.id, 'competencias');
-      const compUltimo = promedioPorItem(colaboradorId, ultimo.periodo.id, 'competencias');
-      const cambios = Object.keys(compUltimo)
-        .filter(id => compPrimero[id] !== undefined)
-        .map(id => ({ competencia: TH.DB.competencia(id), delta: TH.round1(compUltimo[id] - compPrimero[id]), actual: compUltimo[id] }))
-        .filter(c => c.competencia)
+      const indPrimero = promedioPorIndicador(colaboradorId, primero.periodo.id);
+      const indUltimo = promedioPorIndicador(colaboradorId, ultimo.periodo.id);
+      const cambios = Object.keys(indUltimo)
+        .filter(id => indPrimero[id] !== undefined)
+        .map(id => {
+          const info = TH.DB.indicadorInfo(id);
+          return info ? { nombre: info.indicadorNombre, competencia: info.competenciaNombre, delta: TH.round1(indUltimo[id] - indPrimero[id]), actual: indUltimo[id] } : null;
+        })
+        .filter(Boolean)
         .sort((a, b) => b.delta - a.delta);
 
       const crecimiento = cambios.filter(c => c.delta > 0).slice(0, 3);
       const disminucion = cambios.filter(c => c.delta < 0).slice(-3).reverse();
 
-      const objetivoNivel = 80;
-      const cumplimiento = ultimo.consolidado.resultadoGeneral >= objetivoNivel;
+      const objetivoScore = 4.0; // "Supera" — meta institucional de referencia
+      const cumplimiento = ultimo.consolidado.scoreGeneral >= objetivoScore;
 
       root.innerHTML = `
         ${visibles.length > 1 ? selectorHtml() : ''}
@@ -67,8 +73,8 @@
           <div class="trend-row">
             ${historial.map(h => `
               <div class="trend-bar">
-                <span class="trend-bar__value">${h.consolidado.resultadoGeneral}%</span>
-                <div class="trend-bar__col" style="height:${Math.max(6, h.consolidado.resultadoGeneral)}%"></div>
+                <span class="trend-bar__value">${h.consolidado.scoreGeneral}/5</span>
+                <div class="trend-bar__col" style="height:${Math.max(6, h.consolidado.pctGeneral)}%"></div>
                 <span class="trend-bar__label">${h.periodo.nombre.replace('20', "'")}</span>
               </div>
             `).join('')}
@@ -76,10 +82,15 @@
         </div>
 
         <div class="panel" style="margin-bottom:18px;">
-          <p class="section-label">Evolución por dimensión</p>
+          <p class="section-label">Resultado por tipo de evaluador — ${ultimo.periodo.nombre}</p>
           <div class="results">
-            <div class="result-row"><div class="result-row__label">Competencias — ${ultimo.periodo.nombre}</div><div class="result-row__bar"><div class="result-row__fill" style="width:${ultimo.consolidado.resultadoCompetencias}%"></div></div><div class="result-row__value">${ultimo.consolidado.resultadoCompetencias}%</div></div>
-            <div class="result-row"><div class="result-row__label">Comportamiento — ${ultimo.periodo.nombre}</div><div class="result-row__bar"><div class="result-row__fill" style="width:${ultimo.consolidado.resultadoComportamiento}%"></div></div><div class="result-row__value">${ultimo.consolidado.resultadoComportamiento}%</div></div>
+            ${['JEFE', 'PAR', 'AUTO', 'SUBALTERNO', 'SST'].filter(t => ultimo.consolidado.detalle[t] !== undefined).map(t => `
+              <div class="result-row">
+                <div class="result-row__label">${TH.TIPOS_EVALUADOR[t]}</div>
+                <div class="result-row__bar"><div class="result-row__fill" style="width:${ultimo.consolidado.detalle[t] / 5 * 100}%"></div></div>
+                <div class="result-row__value">${ultimo.consolidado.detalle[t]}/5</div>
+              </div>
+            `).join('')}
           </div>
         </div>
 
@@ -87,30 +98,30 @@
           <div class="stat-tile" data-accent="${cumplimiento ? 'green' : 'amber'}">
             <span>Cumplimiento de objetivos</span>
             <strong>${cumplimiento ? 'Cumplido' : 'En progreso'}</strong>
-            <small>Meta institucional: ${objetivoNivel}% · Resultado actual: ${ultimo.consolidado.resultadoGeneral}%</small>
+            <small>Meta de referencia: ${objetivoScore}/5 · Resultado actual: ${ultimo.consolidado.scoreGeneral}/5</small>
           </div>
-          <div class="stat-tile"><span>Nivel alcanzado</span><strong>${TH.nivelPara(ultimo.consolidado.resultadoGeneral)}</strong></div>
+          <div class="stat-tile"><span>Nivel alcanzado</span><strong>${ultimo.consolidado.descriptor}</strong></div>
         </div>
 
         <div class="panel">
-          <p class="section-label">Competencias con mayor crecimiento y disminución</p>
+          <p class="section-label">Indicadores con mayor crecimiento y disminución</p>
           <div class="form-grid">
             <div class="field field--full">
               <label>Mayor crecimiento</label>
               <div class="chip-picker">
-                ${crecimiento.length ? crecimiento.map(c => `<span class="pill pill--ok">${c.competencia.nombre} +${c.delta}%</span>`).join('') : '<span class="pill pill--neutral">Sin variaciones positivas relevantes</span>'}
+                ${crecimiento.length ? crecimiento.map(c => `<span class="pill pill--ok">${c.nombre} +${c.delta}</span>`).join('') : '<span class="pill pill--neutral">Sin variaciones positivas relevantes</span>'}
               </div>
             </div>
             <div class="field field--full">
               <label>Mayor disminución</label>
               <div class="chip-picker">
-                ${disminucion.length ? disminucion.map(c => `<span class="pill pill--warn">${c.competencia.nombre} ${c.delta}%</span>`).join('') : '<span class="pill pill--neutral">Sin variaciones negativas relevantes</span>'}
+                ${disminucion.length ? disminucion.map(c => `<span class="pill pill--warn">${c.nombre} ${c.delta}</span>`).join('') : '<span class="pill pill--neutral">Sin variaciones negativas relevantes</span>'}
               </div>
             </div>
           </div>
           <div class="ia-note">
             <svg viewBox="0 0 24 24"><path d="M12 16v-4"/><path d="M12 8h.01"/><circle cx="12" cy="12" r="9"/></svg>
-            <span>Comparación entre ${primero.periodo.nombre} y ${ultimo.periodo.nombre}. Consulta el módulo "Recomendaciones IA" para sugerencias de mejora basadas en estos resultados.</span>
+            <span>Comparación entre ${primero.periodo.nombre} y ${ultimo.periodo.nombre} (escala 1-5). Consulta el módulo "Recomendaciones IA" para sugerencias de mejora basadas en estos resultados.</span>
           </div>
         </div>
       `;

@@ -1,27 +1,32 @@
 /* =========================================================================
    MODULES.ia — Recomendaciones de IA (RF-25)
-   Apoyo de análisis: nunca reemplaza los cálculos oficiales del sistema
-   (RNF-14, RNF-16).
+   Apoyo de análisis sobre las competencias institucionales y específicas
+   del nivel de cargo (SST se gestiona aparte, como ítem transversal).
+   Nunca reemplaza los cálculos oficiales del sistema (RNF-14, RNF-16).
 ========================================================================= */
 
 (function () {
   'use strict';
   window.Modules = window.Modules || {};
 
-  const NIVEL_META = { 'Básico': 65, 'Intermedio': 80, 'Avanzado': 90 };
+  const META = 4.0; // "Supera" — referencia usada para priorizar recomendaciones
 
-  function promedioPorItem(colaboradorId, periodoId, tipo) {
-    const evs = TH.DB.evaluacionesDe(colaboradorId, periodoId);
-    const acc = {};
+  function promedioPorCompetencia(colaboradorId, periodoId, tipoCargo) {
+    const evs = TH.DB.evaluacionesDe(colaboradorId, periodoId).filter(e => e.tipoEvaluador !== 'SST');
+    const acc = {}; // competenciaId -> [valores]
     evs.forEach(ev => {
-      Object.entries(ev.calificaciones[tipo] || {}).forEach(([id, val]) => {
-        acc[id] = acc[id] || [];
-        acc[id].push(val);
+      Object.entries(ev.calificaciones.indicadores || {}).forEach(([id, val]) => {
+        if (val === 'NO') return;
+        const info = TH.DB.indicadorInfo(id);
+        if (!info) return;
+        acc[info.competenciaId] = acc[info.competenciaId] || [];
+        acc[info.competenciaId].push(Number(val));
       });
     });
-    const out = {};
-    Object.entries(acc).forEach(([id, vals]) => { out[id] = TH.round1(TH.promedio(vals)); });
-    return out;
+    return TH.DB.competenciasAplicables(tipoCargo).map(c => {
+      const vals = acc[c.id] || [];
+      return { competencia: c, valor: vals.length ? TH.round1(TH.promedio(vals)) : null };
+    }).filter(x => x.valor !== null);
   }
 
   window.Modules.ia = function (root, ctx) {
@@ -35,42 +40,31 @@
       }
 
       const colaborador = TH.DB.usuario(colaboradorId);
-      const perfil = colaborador.perfilId ? TH.DB.perfil(colaborador.perfilId) : null;
-      const meta = NIVEL_META[perfil ? perfil.nivelEsperado : 'Intermedio'] || 80;
-
       const periodoBase = TH.DB.periodos().slice().reverse().find(p => p.estado === 'Cerrado') || TH.DB.periodoActivo();
       const consolidado = TH.DB.consolidar(colaboradorId, periodoBase.id);
-
-      const compProm = promedioPorItem(colaboradorId, periodoBase.id, 'competencias');
-      const comportProm = promedioPorItem(colaboradorId, periodoBase.id, 'comportamientos');
-
-      const items = [
-        ...Object.entries(compProm).map(([id, valor]) => ({ item: TH.DB.competencia(id), valor, dim: 'Competencia' })),
-        ...Object.entries(comportProm).map(([id, valor]) => ({ item: TH.DB.comportamiento(id), valor, dim: 'Comportamiento' }))
-      ].filter(x => x.item);
+      const items = promedioPorCompetencia(colaboradorId, periodoBase.id, colaborador.tipoCargo);
 
       const clasificados = items.map(x => {
-        const brecha = TH.round1(meta - x.valor);
+        const brecha = TH.round1(META - x.valor);
         let tier;
-        if (x.valor >= meta) tier = 'fortaleza';
-        else if (brecha > 15) tier = 'alta';
-        else if (brecha >= 5) tier = 'media';
+        if (x.valor >= META) tier = 'fortaleza';
+        else if (brecha > 1.2) tier = 'alta';
+        else if (brecha >= 0.4) tier = 'media';
         else tier = 'baja';
         return Object.assign({ brecha, tier }, x);
       }).sort((a, b) => ({ alta: 0, media: 1, baja: 2, fortaleza: 3 }[a.tier] - { alta: 0, media: 1, baja: 2, fortaleza: 3 }[b.tier]));
 
       const fortalezas = clasificados.filter(c => c.tier === 'fortaleza').slice(0, 3);
       const oportunidades = clasificados.filter(c => c.tier === 'alta' || c.tier === 'media').slice(0, 3);
-
       const badgeLabel = { alta: 'Prioridad alta', media: 'Prioridad media', baja: 'Prioridad baja', fortaleza: 'Fortaleza' };
 
       const resumen = !consolidado
         ? 'Aún no hay resultados consolidados para generar un resumen automático.'
-        : consolidado.resultadoGeneral >= 85
-          ? `${colaborador.nombre} presenta un desempeño sobresaliente en ${periodoBase.nombre}, con un resultado general de ${consolidado.resultadoGeneral}%, destacándose especialmente en comportamiento.`
-          : consolidado.resultadoGeneral >= 70
-            ? `${colaborador.nombre} presenta un desempeño positivo en ${periodoBase.nombre} (${consolidado.resultadoGeneral}%), con oportunidades puntuales de mejora en algunas competencias.`
-            : `${colaborador.nombre} registra un resultado de ${consolidado.resultadoGeneral}% en ${periodoBase.nombre}, por debajo de la meta esperada; se recomienda un plan de acompañamiento.`;
+        : consolidado.scoreGeneral >= 4.2
+          ? `${colaborador.nombre} presenta un desempeño sobresaliente en ${periodoBase.nombre}, con un resultado general de ${consolidado.scoreGeneral}/5 (${consolidado.descriptor}).`
+          : consolidado.scoreGeneral >= 3.0
+            ? `${colaborador.nombre} presenta un desempeño positivo en ${periodoBase.nombre} (${consolidado.scoreGeneral}/5, ${consolidado.descriptor}), con oportunidades puntuales de mejora en algunas competencias.`
+            : `${colaborador.nombre} registra un resultado de ${consolidado.scoreGeneral}/5 (${consolidado.descriptor}) en ${periodoBase.nombre}, por debajo de la meta esperada; se recomienda un plan de acompañamiento.`;
 
       root.innerHTML = `
         ${visibles.length > 1 ? `
@@ -89,20 +83,20 @@
 
         ${consolidado ? `
           <div class="stat-grid" style="margin-bottom:18px;">
-            <div class="stat-tile" data-accent="red"><span>Resultado general</span><strong>${consolidado.resultadoGeneral}%</strong></div>
-            <div class="stat-tile"><span>Nivel alcanzado</span><strong>${TH.nivelPara(consolidado.resultadoGeneral)}</strong></div>
-            <div class="stat-tile"><span>Meta del perfil</span><strong>${meta}%</strong><small>${perfil ? perfil.nombre : 'General'}</small></div>
+            <div class="stat-tile" data-accent="red"><span>Resultado general</span><strong>${consolidado.scoreGeneral}/5</strong><small>${consolidado.pctGeneral}%</small></div>
+            <div class="stat-tile"><span>Nivel alcanzado</span><strong>${consolidado.descriptor}</strong></div>
+            <div class="stat-tile"><span>Meta de referencia</span><strong>${META}/5</strong><small>Nivel "Supera"</small></div>
           </div>
 
           <div class="panel">
             <p class="section-label">Fortalezas</p>
             <div class="chip-picker" style="margin-bottom:20px;">
-              ${fortalezas.length ? fortalezas.map(f => `<span class="pill pill--ok">${f.item.nombre}</span>`).join('') : '<span class="pill pill--neutral">Aún no hay fortalezas por encima de la meta</span>'}
+              ${fortalezas.length ? fortalezas.map(f => `<span class="pill pill--ok">${f.competencia.nombre}</span>`).join('') : '<span class="pill pill--neutral">Aún no hay competencias por encima de la meta</span>'}
             </div>
 
             <p class="section-label">Oportunidades de mejora</p>
             <div class="chip-picker" style="margin-bottom:22px;">
-              ${oportunidades.length ? oportunidades.map(o => `<span class="pill pill--warn">${o.item.nombre}</span>`).join('') : '<span class="pill pill--neutral">Sin brechas relevantes</span>'}
+              ${oportunidades.length ? oportunidades.map(o => `<span class="pill pill--warn">${o.competencia.nombre}</span>`).join('') : '<span class="pill pill--neutral">Sin brechas relevantes</span>'}
             </div>
 
             <p class="section-label">Recomendaciones</p>
@@ -111,9 +105,9 @@
                 <div class="reco-card">
                   <span class="reco-card__badge reco-card__badge--${c.tier}">${badgeLabel[c.tier]}</span>
                   <div class="reco-card__body">
-                    <h4>${c.dim}: ${c.item.nombre}</h4>
+                    <h4>${c.competencia.nombre}</h4>
                     <p>${recomendacionPara(c)}</p>
-                    <span class="reco-tag">Resultado ${c.valor}% · Meta ${meta}%</span>
+                    <span class="reco-tag">Resultado ${c.valor}/5 · Meta ${META}/5</span>
                   </div>
                 </div>
               `).join('')}
@@ -132,10 +126,10 @@
     }
 
     function recomendacionPara(c) {
-      if (c.tier === 'fortaleza') return `Comparte tu forma de trabajar en "${c.item.nombre}" como referencia para el equipo.`;
-      if (c.tier === 'alta') return `Se recomienda un plan de acompañamiento dirigido y capacitación específica en "${c.item.nombre}" durante el próximo período.`;
-      if (c.tier === 'media') return `Refuerza "${c.item.nombre}" con retroalimentación periódica y práctica dirigida.`;
-      return `Mantén el nivel actual en "${c.item.nombre}"; está cerca de la meta esperada.`;
+      if (c.tier === 'fortaleza') return `Comparte tu forma de trabajar en "${c.competencia.nombre}" como referencia para el equipo.`;
+      if (c.tier === 'alta') return `Se recomienda un plan de acompañamiento dirigido y capacitación específica en "${c.competencia.nombre}" durante el próximo período.`;
+      if (c.tier === 'media') return `Refuerza "${c.competencia.nombre}" con retroalimentación periódica y práctica dirigida.`;
+      return `Mantén el nivel actual en "${c.competencia.nombre}"; está cerca de la meta esperada.`;
     }
 
     pintar();

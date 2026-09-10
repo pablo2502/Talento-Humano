@@ -47,9 +47,9 @@
 
   const NAV = [
     { section: 'Principal', items: [
-      { id: 'dashboard', label: 'Panel principal', icon: 'dashboard', roles: ['admin', 'jefe', 'gerente', 'cliente', 'colaborador'] },
-      { id: 'miperfil', label: 'Mi perfil', icon: 'perfil', roles: ['admin', 'jefe', 'gerente', 'cliente', 'colaborador'] },
-      { id: 'notificaciones', label: 'Notificaciones', icon: 'notificaciones', roles: ['admin', 'jefe', 'gerente', 'cliente', 'colaborador'], badge: true }
+      { id: 'dashboard', label: 'Panel principal', icon: 'dashboard', roles: ['admin', 'colaborador'] },
+      { id: 'miperfil', label: 'Mi perfil', icon: 'perfil', roles: ['admin', 'colaborador'] },
+      { id: 'notificaciones', label: 'Notificaciones', icon: 'notificaciones', roles: ['admin', 'colaborador'], badge: true }
     ] },
     { section: 'Administración', items: [
       { id: 'usuarios', label: 'Usuarios', icon: 'usuarios', roles: ['admin'] },
@@ -58,15 +58,15 @@
       { id: 'competencias', label: 'Competencias', icon: 'competencias', roles: ['admin'] },
       { id: 'comportamientos', label: 'Comportamientos', icon: 'comportamientos', roles: ['admin'] },
       { id: 'periodos', label: 'Períodos', icon: 'periodos', roles: ['admin'] },
-      { id: 'evaluadores', label: 'Evaluadores', icon: 'evaluadores', roles: ['admin'] }
+      { id: 'evaluadores', label: 'Asignación 360°', icon: 'evaluadores', roles: ['admin'] }
     ] },
     { section: 'Evaluación', items: [
-      { id: 'evaluaciones', label: 'Realizar evaluación', icon: 'evaluaciones', roles: ['jefe', 'gerente', 'cliente'] },
-      { id: 'resultados', label: 'Resultados', icon: 'resultados', roles: ['admin', 'jefe', 'gerente', 'cliente', 'colaborador'] },
-      { id: 'seguimiento', label: 'Seguimiento', icon: 'seguimiento', roles: ['admin', 'jefe', 'gerente', 'colaborador'] },
-      { id: 'informes', label: 'Informes', icon: 'informes', roles: ['admin', 'jefe', 'gerente'] },
-      { id: 'busqueda', label: 'Búsqueda', icon: 'busqueda', roles: ['admin', 'jefe', 'gerente'] },
-      { id: 'ia', label: 'Recomendaciones IA', icon: 'ia', roles: ['admin', 'jefe', 'gerente', 'cliente', 'colaborador'] }
+      { id: 'evaluaciones', label: 'Realizar evaluación', icon: 'evaluaciones', roles: ['colaborador'] },
+      { id: 'resultados', label: 'Resultados', icon: 'resultados', roles: ['admin', 'colaborador'] },
+      { id: 'seguimiento', label: 'Seguimiento', icon: 'seguimiento', roles: ['admin', 'colaborador'] },
+      { id: 'informes', label: 'Informes', icon: 'informes', roles: ['admin', 'colaborador'] },
+      { id: 'busqueda', label: 'Búsqueda', icon: 'busqueda', roles: ['admin', 'colaborador'] },
+      { id: 'ia', label: 'Recomendaciones IA', icon: 'ia', roles: ['admin', 'colaborador'] }
     ] }
   ];
 
@@ -140,13 +140,13 @@
     notificaciones: { title: 'Notificaciones', desc: 'Avisos generados por el sistema.' },
     usuarios: { title: 'Usuarios', desc: 'Crea, edita y desactiva usuarios del sistema (RF-02).' },
     roles: { title: 'Roles y permisos', desc: 'Consulta los permisos asociados a cada rol (RF-03).' },
-    perfiles: { title: 'Perfiles de cargo', desc: 'Administra los perfiles y las competencias/comportamientos que exigen (RF-04).' },
-    competencias: { title: 'Competencias', desc: 'Catálogo de competencias evaluables (RF-05).' },
-    comportamientos: { title: 'Comportamientos', desc: 'Catálogo de comportamientos e indicadores observables (RF-06).' },
+    perfiles: { title: 'Perfiles de cargo', desc: 'Cargos institucionales y el nivel (Estratégico/Táctico/Apoyo) que determina sus competencias (RF-04).' },
+    competencias: { title: 'Competencias', desc: 'Diccionario real de competencias institucionales, por nivel de cargo y SST, con indicadores 360° (RF-05).' },
+    comportamientos: { title: 'Comportamientos', desc: 'Consulta los comportamientos observables de cada indicador, según quién evalúa (RF-06).' },
     periodos: { title: 'Períodos de evaluación', desc: 'Crea, activa y cierra los períodos de evaluación (RF-08).' },
-    evaluadores: { title: 'Evaluadores', desc: 'Selecciona colaboradores y asigna evaluadores por período (RF-09, RF-10, RF-28).' },
-    evaluaciones: { title: 'Realizar evaluación', desc: 'Evalúa a los colaboradores asignados en el período activo (RF-11 a RF-13).' },
-    resultados: { title: 'Resultados', desc: 'Resultados por competencia, comportamiento y consolidado (RF-14 a RF-16).' },
+    evaluadores: { title: 'Asignación 360°', desc: 'Evaluaciones generadas automáticamente por período según la estructura organizacional (RF-09, RF-10, RF-28).' },
+    evaluaciones: { title: 'Realizar evaluación', desc: 'Autoevaluación y evaluación de tu jefe, pares y subalternos en el período activo (RF-11 a RF-13).' },
+    resultados: { title: 'Resultados', desc: 'Resultado por evaluador (Auto/Jefe/Par/Subalterno/SST) y consolidado 360° (RF-14 a RF-16).' },
     seguimiento: { title: 'Seguimiento', desc: 'Evolución del desempeño entre períodos (RF-17, RF-18).' },
     informes: { title: 'Informes', desc: 'Genera informes individuales, por área o generales en PDF (RF-19 a RF-21).' },
     busqueda: { title: 'Búsqueda', desc: 'Filtra colaboradores, evaluaciones y resultados (RF-22).' },
