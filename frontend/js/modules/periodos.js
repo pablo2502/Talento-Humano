@@ -11,7 +11,7 @@
   window.Modules.periodos = function (root, ctx) {
 
     function pintar() {
-      const periodos = TH.DB.periodos();
+      const periodos = TH.DB.periodosPorTipo('competencias');
 
       root.innerHTML = `
         <div class="view__head">
@@ -54,7 +54,7 @@
       root.querySelectorAll('[data-activar]').forEach(b => b.addEventListener('click', () => {
         const actual = TH.DB.periodoActivo();
         const activar = () => {
-          TH.DB.periodos().forEach(p => { if (p.estado === 'Activo') TH.DB.actualizar('periodos', p.id, { estado: 'Cerrado' }); });
+          TH.DB.periodosPorTipo('competencias').forEach(p => { if (p.estado === 'Activo') TH.DB.actualizar('periodos', p.id, { estado: 'Cerrado' }); });
           TH.DB.actualizar('periodos', b.dataset.activar, { estado: 'Activo' });
           const generadas = TH.DB.generarEvaluacionesPeriodo(b.dataset.activar);
           UI.toast(generadas > 0 ? `Período activado. Se generaron ${generadas} evaluaciones 360° (RF-28).` : 'Período activado.');
@@ -100,7 +100,8 @@
             nombre: box.querySelector('#fNombre').value.trim(),
             fechaInicio: box.querySelector('#fInicio').value,
             fechaFin: box.querySelector('#fFin').value,
-            estado: 'Cerrado'
+            estado: 'Cerrado',
+            tipo: 'competencias'
           };
           if (!data.nombre || !data.fechaInicio || !data.fechaFin) { UI.toast('Completa todos los campos.'); return; }
           TH.DB.crear('periodos', data, 'per');

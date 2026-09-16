@@ -61,7 +61,7 @@
     const pendientes = evaluaciones.filter(e => !['Consolidada', 'Cerrada'].includes(e.estado)).length;
     const finalizadas = evaluaciones.filter(e => ['Finalizada', 'Consolidada', 'Cerrada'].includes(e.estado)).length;
 
-    const periodoBase = TH.DB.periodos().slice().reverse().find(p => p.estado === 'Cerrado') || TH.DB.periodoActivo();
+    const periodoBase = TH.DB.periodosPorTipo('competencias').slice().reverse().find(p => p.estado === 'Cerrado') || TH.DB.periodoActivo();
     const consolidados = activos.map(c => TH.DB.consolidar(c.id, periodoBase.id)).filter(Boolean);
     const promedioGeneral = consolidados.length ? TH.round1(TH.promedio(consolidados.map(c => c.pctGeneral))) : 0;
     const promedioScore = consolidados.length ? TH.round1(TH.promedio(consolidados.map(c => c.scoreGeneral))) : 0;
@@ -72,7 +72,7 @@
       return { nivel, label: TH.TIPO_CARGO_LABEL[nivel], promedio: cons.length ? TH.round1(TH.promedio(cons.map(c => c.pctGeneral))) : 0, n: cons.length };
     });
 
-    const porPeriodo = TH.DB.periodos().map(p => {
+    const porPeriodo = TH.DB.periodosPorTipo('competencias').map(p => {
       const cons = activos.map(c => TH.DB.consolidar(c.id, p.id)).filter(Boolean);
       return { periodo: p, promedio: cons.length ? TH.round1(TH.promedio(cons.map(c => c.pctGeneral))) : null };
     }).filter(p => p.promedio !== null);
@@ -112,14 +112,20 @@
         </div>
       </div>
 
-      <p class="grid-label section-label">Módulos de administración</p>
-      <div class="modules-grid">
+      <p class="grid-label section-label">Administración · Competencias 360°</p>
+      <div class="modules-grid" style="margin-bottom:24px;">
         ${moduleCard('usuarios', 'usuarios', 'Usuarios', 'Crea, edita y desactiva usuarios del sistema.', 'red')}
-        ${moduleCard('perfiles', 'perfiles', 'Perfiles de cargo', 'Cargos institucionales y su nivel (Estratégico/Táctico/Apoyo).')}
-        ${moduleCard('periodos', 'periodos', 'Períodos', 'Crea, activa y cierra ciclos de evaluación.')}
-        ${moduleCard('evaluadores', 'evaluadores', 'Asignación 360°', 'Consulta las evaluaciones generadas por estructura organizacional.')}
-        ${moduleCard('busqueda', 'busqueda', 'Búsqueda', 'Filtra colaboradores y resultados.')}
+        ${moduleCard('periodos', 'periodos', 'Períodos', 'Crea, activa y cierra ciclos de evaluación 360°.')}
+        ${moduleCard('evaluadores', 'evaluadores', 'Asignación 360°', 'Genera, reasigna o quita evaluaciones puntuales.')}
         ${moduleCard('informes', 'informes', 'Informes', 'Genera el informe general en PDF.')}
+      </div>
+
+      <p class="grid-label section-label">Administración · Desempeño por objetivos</p>
+      <div class="modules-grid">
+        ${moduleCard('periodosDesempeno', 'periodos', 'Períodos de Desempeño', 'Ciclos mensuales de evaluación por objetivos.')}
+        ${moduleCard('asignacionDesempeno', 'evaluadores', 'Asignación de Desempeño', 'Define qué jefe evalúa a cada colaborador.')}
+        ${moduleCard('objetivos', 'objetivos', 'Objetivos', 'Carga criterios ponderados uno por uno o por Excel.', 'red')}
+        ${moduleCard('busqueda', 'busqueda', 'Búsqueda', 'Filtra colaboradores y resultados.')}
       </div>
     `;
 
@@ -164,12 +170,18 @@
         ${subalternos.length ? statTile('Personas a cargo', subalternos.length) : ''}
       </div>
 
-      <p class="grid-label section-label">Módulos disponibles</p>
-      <div class="modules-grid">
+      <p class="grid-label section-label">Competencias 360°</p>
+      <div class="modules-grid" style="margin-bottom:24px;">
         ${moduleCard('evaluaciones', 'evaluaciones', 'Realizar evaluación', 'Autoevaluación y evaluación 360° del ciclo actual.', 'red')}
         ${moduleCard('resultados', 'resultados', 'Consultar resultados', 'Tu resultado por evaluador (Auto/Jefe/Par/Subalterno) y consolidado.')}
         ${moduleCard('seguimiento', 'seguimiento', 'Consultar seguimiento', 'Tu evolución entre períodos.')}
         ${moduleCard('ia', 'ia', 'Recomendaciones de IA', 'Sugerencias generadas a partir de tus resultados.')}
+      </div>
+
+      <p class="grid-label section-label">Desempeño por objetivos</p>
+      <div class="modules-grid">
+        ${moduleCard('evaluacionDesempeno', 'evaluaciones', 'Evaluar desempeño', 'Registra el avance de los objetivos de tu equipo, si tienes personas asignadas.')}
+        ${moduleCard('resultadosDesempeno', 'resultados', 'Resultados de Desempeño', 'Tu resultado ponderado por criterio y período.')}
       </div>
     `;
 

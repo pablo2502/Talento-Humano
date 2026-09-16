@@ -40,7 +40,7 @@
       }
 
       const colaborador = TH.DB.usuario(colaboradorId);
-      const periodoBase = TH.DB.periodos().slice().reverse().find(p => p.estado === 'Cerrado') || TH.DB.periodoActivo();
+      const periodoBase = TH.DB.periodosPorTipo('competencias').slice().reverse().find(p => p.estado === 'Cerrado') || TH.DB.periodoActivo();
       const consolidado = TH.DB.consolidar(colaboradorId, periodoBase.id);
       const items = promedioPorCompetencia(colaboradorId, periodoBase.id, colaborador.tipoCargo);
 

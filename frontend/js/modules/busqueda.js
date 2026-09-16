@@ -48,7 +48,7 @@
             </div>
             <div class="field">
               <label>Período</label>
-              <select id="fPeriodo"><option value="">Todos</option>${TH.DB.periodos().map(p => `<option value="${p.id}">${p.nombre}</option>`).join('')}</select>
+              <select id="fPeriodo"><option value="">Todos</option>${TH.DB.periodosPorTipo('competencias').map(p => `<option value="${p.id}">${p.nombre}</option>`).join('')}</select>
             </div>
             <div class="field">
               <label>Estado de evaluación</label>

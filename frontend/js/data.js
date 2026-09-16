@@ -15,7 +15,10 @@
 (function (global) {
   'use strict';
 
-  const STORAGE_KEY = 'th_db_v2';
+  // v3: agrega tipo de período (competencias/desempeño), asignación 360°
+  // editable a mano y el módulo de Desempeño por objetivos — se cambia la
+  // clave para que la demo se reconstruya con el nuevo modelo de datos.
+  const STORAGE_KEY = 'th_db_v3';
   const COMPETENCIAS_360 = global.COMPETENCIAS_360 || [];
 
   /* =======================================================================
@@ -217,11 +220,18 @@
      PERÍODOS (RF-08)
   ======================================================================= */
 
+  // El campo `tipo` distingue los períodos de Competencias 360° (semestrales)
+  // de los períodos de Desempeño por objetivos (mensuales) — cada uno con su
+  // propio período activo y su propia pantalla de administración.
   const PERIODOS = [
-    { id: 'per-2025-1', nombre: '2025 - Primer semestre', fechaInicio: '2025-01-01', fechaFin: '2025-06-30', estado: 'Cerrado' },
-    { id: 'per-2025-2', nombre: '2025 - Segundo semestre', fechaInicio: '2025-07-01', fechaFin: '2025-12-31', estado: 'Cerrado' },
-    { id: 'per-2026-1', nombre: '2026 - Primer semestre', fechaInicio: '2026-01-01', fechaFin: '2026-06-30', estado: 'Cerrado' },
-    { id: 'per-2026-2', nombre: '2026 - Segundo semestre', fechaInicio: '2026-07-01', fechaFin: '2026-12-31', estado: 'Activo' }
+    { id: 'per-2025-1', nombre: '2025 - Primer semestre', fechaInicio: '2025-01-01', fechaFin: '2025-06-30', estado: 'Cerrado', tipo: 'competencias' },
+    { id: 'per-2025-2', nombre: '2025 - Segundo semestre', fechaInicio: '2025-07-01', fechaFin: '2025-12-31', estado: 'Cerrado', tipo: 'competencias' },
+    { id: 'per-2026-1', nombre: '2026 - Primer semestre', fechaInicio: '2026-01-01', fechaFin: '2026-06-30', estado: 'Cerrado', tipo: 'competencias' },
+    { id: 'per-2026-2', nombre: '2026 - Segundo semestre', fechaInicio: '2026-07-01', fechaFin: '2026-12-31', estado: 'Activo', tipo: 'competencias' },
+
+    { id: 'per-des-2026-07', nombre: 'Desempeño · Julio 2026', fechaInicio: '2026-07-01', fechaFin: '2026-07-31', estado: 'Cerrado', tipo: 'desempeno' },
+    { id: 'per-des-2026-08', nombre: 'Desempeño · Agosto 2026', fechaInicio: '2026-08-01', fechaFin: '2026-08-31', estado: 'Cerrado', tipo: 'desempeno' },
+    { id: 'per-des-2026-09', nombre: 'Desempeño · Septiembre 2026', fechaInicio: '2026-09-01', fechaFin: '2026-09-30', estado: 'Activo', tipo: 'desempeno' }
   ];
 
   /* =======================================================================
@@ -272,6 +282,34 @@
       scoreEspecifico: espVals.length ? round1(promedio(espVals)) : null,
       calificados: valoresNumericos.length + ids.filter(id => indicadores[id] === 'NO').length,
       totalIndicadores: ids.length
+    };
+  }
+
+  /* =======================================================================
+     RESULTADO DE UN OBJETIVO DE DESEMPEÑO
+     Cada objetivo tiene criterios con un peso (%) y un avance (% logrado).
+     El resultado es la suma de peso × avance / 100 de cada criterio, que
+     llega a 100 cuando todos los criterios están 100% avanzados y sus pesos
+     suman 100 (igual que el peso de cada criterio debe sumar 100 entre sí).
+  ======================================================================= */
+
+  function descriptorParaPct(pct) {
+    if (pct >= 90) return 'Sobresale';
+    if (pct >= 70) return 'Supera';
+    if (pct >= 50) return 'Cumple';
+    if (pct >= 30) return 'Cumple parcialmente';
+    return 'No cumple';
+  }
+
+  function calcResultadoObjetivo(objetivo) {
+    if (!objetivo || !objetivo.criterios || !objetivo.criterios.length) return null;
+    const pesoTotal = round1(objetivo.criterios.reduce((s, c) => s + Number(c.peso || 0), 0));
+    const pctLogrado = round1(objetivo.criterios.reduce((s, c) => s + (Number(c.peso || 0) * Number(c.avance || 0) / 100), 0));
+    return {
+      pctLogrado, pesoTotal, pesoOk: Math.abs(pesoTotal - 100) < 0.05,
+      descriptor: descriptorParaPct(pctLogrado),
+      criteriosCompletos: objetivo.criterios.filter(c => Number(c.avance || 0) >= 100).length,
+      totalCriterios: objetivo.criterios.length
     };
   }
 
@@ -438,6 +476,55 @@
   }
 
   /* =======================================================================
+     SEMILLA DE DESEMPEÑO POR OBJETIVOS
+     Asigna cada colaborador con jefe a su jefe como evaluador de desempeño
+     en cada período mensual, y carga objetivos de ejemplo con 3 criterios
+     ponderados (40/35/25 = 100). Dos colaboradores se dejan sin objetivos
+     en el período activo para mostrar el flujo de carga (manual o Excel).
+  ======================================================================= */
+
+  function construirDesempenoSeed(usuarios, periodosDesempeno) {
+    const asignaciones = [];
+    const objetivos = [];
+    const candidatos = usuarios.filter(u => u.rolId === 'colaborador' && u.estado === 'Activo' && u.jefeId);
+    const sinObjetivoActivo = new Set(['u-11', 'u-13']);
+    const cerrados = periodosDesempeno.filter(p => p.estado === 'Cerrado');
+    const activo = periodosDesempeno.find(p => p.estado === 'Activo');
+
+    const criteriosBase = [
+      { nombre: 'Cumplimiento del plan de trabajo', peso: 40 },
+      { nombre: 'Calidad de los entregables', peso: 35 },
+      { nombre: 'Trabajo en equipo y comunicación', peso: 25 }
+    ];
+    const avancesActivoPorIndice = [[60, 50, 40], [80, 70, 90], [30, 20, 10], [95, 100, 85]];
+
+    candidatos.forEach((c, idx) => {
+      periodosDesempeno.forEach(periodo => {
+        asignaciones.push({ id: uid('asigd'), periodoId: periodo.id, colaboradorId: c.id, evaluadorId: c.jefeId });
+      });
+
+      cerrados.forEach(periodo => {
+        objetivos.push({
+          id: uid('obj'), periodoId: periodo.id, colaboradorId: c.id, evaluadorId: c.jefeId,
+          estado: 'Cerrada', fecha: periodo.fechaFin,
+          criterios: criteriosBase.map(cr => ({ id: uid('crit'), nombre: cr.nombre, peso: cr.peso, avance: 100 }))
+        });
+      });
+
+      if (activo && !sinObjetivoActivo.has(c.id)) {
+        const avances = avancesActivoPorIndice[idx % avancesActivoPorIndice.length];
+        objetivos.push({
+          id: uid('obj'), periodoId: activo.id, colaboradorId: c.id, evaluadorId: c.jefeId,
+          estado: avances.some(a => a > 0) ? 'En proceso' : 'Pendiente', fecha: null,
+          criterios: criteriosBase.map((cr, i) => ({ id: uid('crit'), nombre: cr.nombre, peso: cr.peso, avance: avances[i] }))
+        });
+      }
+    });
+
+    return { asignaciones, objetivos };
+  }
+
+  /* =======================================================================
      NOTIFICACIONES (RF-26) — semilla mínima sobre el período activo
   ======================================================================= */
 
@@ -469,13 +556,20 @@
   ======================================================================= */
 
   function construirSeed() {
-    const evaluaciones = construirEvaluacionesSeed(USUARIOS, PERIODOS);
-    const activo = PERIODOS.find(p => p.estado === 'Activo');
+    const periodosCompetencias = PERIODOS.filter(p => (p.tipo || 'competencias') === 'competencias');
+    const periodosDesempeno = PERIODOS.filter(p => p.tipo === 'desempeno');
+
+    const evaluaciones = construirEvaluacionesSeed(USUARIOS, periodosCompetencias);
+    const activo = periodosCompetencias.find(p => p.estado === 'Activo');
     const evaluacionesActivas = evaluaciones.filter(e => e.periodoId === activo.id);
     const notificaciones = construirNotificacionesSeed(USUARIOS, evaluacionesActivas, activo.nombre);
+
+    const desempeno = construirDesempenoSeed(USUARIOS, periodosDesempeno);
+
     return {
       roles: ROLES, perfiles: PERFILES, usuarios: USUARIOS, periodos: PERIODOS,
-      evaluaciones, notificaciones
+      evaluaciones, notificaciones,
+      asignacionesDesempeno: desempeno.asignaciones, objetivos: desempeno.objetivos
     };
   }
 
@@ -501,7 +595,8 @@
     perfil: id => state.perfiles.find(p => p.id === id),
     periodo: id => state.periodos.find(p => p.id === id),
 
-    periodoActivo: () => state.periodos.find(p => p.estado === 'Activo'),
+    periodoActivo: (tipo) => state.periodos.find(p => p.estado === 'Activo' && (p.tipo || 'competencias') === (tipo || 'competencias')),
+    periodosPorTipo: (tipo) => state.periodos.filter(p => (p.tipo || 'competencias') === (tipo || 'competencias')),
 
     // ---- estructura organizacional ----
     jefeDe, paresDe, subalternosDirectos, subalternosTodos,
@@ -555,6 +650,28 @@
       state.evaluaciones.push(ev);
       save();
       return ev;
+    },
+    // Edición manual de la Asignación 360°: permite cambiar quién evalúa a
+    // quién y con qué tipo de relación (Jefe/Par/Subalterno/Auto/SST) sin
+    // depender del organigrama. Si cambia el tipo de evaluador, las
+    // calificaciones ya guardadas se reinician porque los indicadores/
+    // comportamientos aplicables pueden ser distintos (p. ej. SST vs. 360°).
+    reasignarEvaluacion(evaluacionId, data) {
+      const ev = state.evaluaciones.find(e => e.id === evaluacionId);
+      if (!ev) return { ok: false, error: 'Evaluación no encontrada.' };
+      if (['Consolidada', 'Cerrada'].includes(ev.estado)) {
+        return { ok: false, error: 'No se puede reasignar una evaluación ya consolidada o cerrada.' };
+      }
+      const cambiaTipo = data.tipoEvaluador && data.tipoEvaluador !== ev.tipoEvaluador;
+      if (data.evaluadorId) ev.evaluadorId = data.evaluadorId;
+      if (data.tipoEvaluador) ev.tipoEvaluador = data.tipoEvaluador;
+      if (cambiaTipo) {
+        ev.calificaciones = { indicadores: {} };
+        ev.estado = 'Pendiente';
+        ev.fecha = null;
+      }
+      save();
+      return { ok: true };
     },
     generarEvaluacionesPeriodo(periodoId) {
       const existentes = state.evaluaciones.filter(e => e.periodoId === periodoId);
@@ -624,9 +741,167 @@
     },
 
     historialDe(colaboradorId) {
-      return state.periodos
+      return DB.periodosPorTipo('competencias')
         .map(p => ({ periodo: p, consolidado: DB.consolidar(colaboradorId, p.id) }))
         .filter(h => h.consolidado);
+    },
+
+    /* =====================================================================
+       DESEMPEÑO POR OBJETIVOS — evaluación 1 a 1 (jefe evalúa colaborador),
+       con criterios ponderados que se cargan uno por uno o en bloque por
+       Excel (una fila por criterio) y un avance por criterio que se
+       acumula hasta el 100%.
+    ===================================================================== */
+
+    // ---- asignación (quién evalúa a quién) ----
+    asignacionesDesempeno: () => state.asignacionesDesempeno,
+    asignacionesDesempenoDe(periodoId) {
+      return state.asignacionesDesempeno.filter(a => a.periodoId === periodoId);
+    },
+    asignacionDesempenoDe(colaboradorId, periodoId) {
+      return state.asignacionesDesempeno.find(a => a.colaboradorId === colaboradorId && a.periodoId === periodoId) || null;
+    },
+    asignarDesempeno(periodoId, colaboradorId, evaluadorId) {
+      let a = state.asignacionesDesempeno.find(x => x.colaboradorId === colaboradorId && x.periodoId === periodoId);
+      if (a) { a.evaluadorId = evaluadorId; } else {
+        a = { id: uid('asigd'), periodoId, colaboradorId, evaluadorId };
+        state.asignacionesDesempeno.push(a);
+      }
+      save();
+      return a;
+    },
+    eliminarAsignacionDesempeno(id) {
+      state.asignacionesDesempeno = state.asignacionesDesempeno.filter(a => a.id !== id);
+      save();
+    },
+    generarAsignacionesDesempenoPeriodo(periodoId) {
+      const colaboradores = state.usuarios.filter(u => u.rolId === 'colaborador' && u.estado === 'Activo');
+      let count = 0;
+      colaboradores.forEach(c => {
+        const existe = state.asignacionesDesempeno.find(a => a.colaboradorId === c.id && a.periodoId === periodoId);
+        if (existe) return;
+        const jefe = jefeDe(c.id);
+        state.asignacionesDesempeno.push({ id: uid('asigd'), periodoId, colaboradorId: c.id, evaluadorId: jefe ? jefe.id : c.id });
+        count++;
+      });
+      save();
+      return count;
+    },
+
+    // ---- objetivos (criterios ponderados por colaborador y período) ----
+    objetivos: () => state.objetivos,
+    objetivo: id => state.objetivos.find(o => o.id === id),
+    objetivosDe(colaboradorId, periodoId) {
+      return state.objetivos.filter(o => o.colaboradorId === colaboradorId && (!periodoId || o.periodoId === periodoId));
+    },
+    objetivoDe(colaboradorId, periodoId) {
+      return state.objetivos.find(o => o.colaboradorId === colaboradorId && o.periodoId === periodoId) || null;
+    },
+    objetivosAsignadosA(evaluadorId, periodoId) {
+      return state.objetivos.filter(o => o.evaluadorId === evaluadorId && (!periodoId || o.periodoId === periodoId));
+    },
+    resultadoObjetivo: calcResultadoObjetivo,
+    // Crea el objetivo del colaborador en el período si no existe, o
+    // reemplaza su lista de criterios si ya existe (usado tanto por la
+    // carga manual uno a uno como por la carga masiva desde Excel).
+    guardarObjetivo(data) {
+      let obj = state.objetivos.find(o => o.colaboradorId === data.colaboradorId && o.periodoId === data.periodoId);
+      const criterios = (data.criterios || []).map(c => ({
+        id: c.id || uid('crit'),
+        nombre: c.nombre,
+        peso: Number(c.peso) || 0,
+        avance: clamp(Number(c.avance) || 0, 0, 100)
+      }));
+      if (obj) {
+        obj.evaluadorId = data.evaluadorId || obj.evaluadorId;
+        obj.criterios = criterios;
+      } else {
+        obj = { id: uid('obj'), periodoId: data.periodoId, colaboradorId: data.colaboradorId, evaluadorId: data.evaluadorId, estado: 'Pendiente', fecha: null, criterios };
+        state.objetivos.push(obj);
+      }
+      save();
+      return obj;
+    },
+    actualizarAvanceCriterio(objetivoId, criterioId, avance) {
+      const obj = state.objetivos.find(o => o.id === objetivoId);
+      if (!obj) return;
+      const crit = obj.criterios.find(c => c.id === criterioId);
+      if (!crit) return;
+      crit.avance = clamp(Number(avance) || 0, 0, 100);
+      if (obj.estado === 'Pendiente') obj.estado = 'En proceso';
+      save();
+    },
+    avanzarEstadoObjetivo(objetivoId, nuevoEstado) {
+      const obj = state.objetivos.find(o => o.id === objetivoId);
+      if (!obj) return { ok: false, error: 'Objetivo no encontrado.' };
+      if (!siguienteEstadoValido(obj.estado, nuevoEstado)) {
+        return { ok: false, error: 'No se puede pasar de "' + obj.estado + '" a "' + nuevoEstado + '".' };
+      }
+      obj.estado = nuevoEstado;
+      if (!obj.fecha) obj.fecha = new Date().toISOString().slice(0, 10);
+      save();
+      return { ok: true };
+    },
+    eliminarObjetivo(id) {
+      state.objetivos = state.objetivos.filter(o => o.id !== id);
+      save();
+    },
+    historialDesempenoDe(colaboradorId) {
+      return DB.periodosPorTipo('desempeno')
+        .map(p => ({ periodo: p, objetivo: DB.objetivoDe(colaboradorId, p.id) }))
+        .filter(h => h.objetivo)
+        .map(h => Object.assign({}, h, { resultado: calcResultadoObjetivo(h.objetivo) }));
+    },
+    // Carga masiva desde Excel "a nivel general": una fila por criterio,
+    // con todos los evaluadores y colaboradores del archivo a la vez.
+    // Cada fila puede indicar su propio período (columna Período); si no
+    // la trae, se usa `periodoIdDefault` (el período elegido en pantalla).
+    // Las filas se agrupan por período + colaborador para armar el
+    // objetivo completo (todos sus criterios) de cada uno.
+    importarObjetivosExcel(periodoIdDefault, filas) {
+      const periodosDesempeno = state.periodos.filter(p => p.tipo === 'desempeno');
+      const porGrupo = {};
+      const errores = [];
+
+      filas.forEach((f, idx) => {
+        const fila = idx + 2; // +1 por índice base 0, +1 por fila de encabezado
+
+        let periodoId = periodoIdDefault;
+        if (f.periodoNombre) {
+          const p = periodosDesempeno.find(p => p.nombre.toLowerCase() === String(f.periodoNombre).toLowerCase().trim());
+          if (!p) { errores.push('Fila ' + fila + ': no se encontró el período "' + f.periodoNombre + '".'); return; }
+          periodoId = p.id;
+        }
+        if (!periodoId) { errores.push('Fila ' + fila + ': no se indicó período y no hay uno seleccionado por defecto.'); return; }
+
+        const colaborador = state.usuarios.find(u => (u.correo || '').toLowerCase() === String(f.colaboradorCorreo || '').toLowerCase().trim());
+        if (!colaborador) { errores.push('Fila ' + fila + ': no se encontró el colaborador "' + f.colaboradorCorreo + '".'); return; }
+        let evaluador = null;
+        if (f.evaluadorCorreo) {
+          evaluador = state.usuarios.find(u => (u.correo || '').toLowerCase() === String(f.evaluadorCorreo).toLowerCase().trim());
+          if (!evaluador) { errores.push('Fila ' + fila + ': no se encontró el evaluador "' + f.evaluadorCorreo + '".'); return; }
+        }
+        if (!f.criterio || f.peso === undefined || f.peso === null || f.peso === '') { errores.push('Fila ' + fila + ': falta el criterio o el peso.'); return; }
+
+        const key = periodoId + '|' + colaborador.id;
+        if (!porGrupo[key]) porGrupo[key] = { periodoId, colaborador, evaluador: null, criterios: [] };
+        if (evaluador) porGrupo[key].evaluador = evaluador;
+        porGrupo[key].criterios.push({ nombre: String(f.criterio).trim(), peso: Number(f.peso) || 0, avance: f.avance !== undefined && f.avance !== '' ? clamp(Number(f.avance) || 0, 0, 100) : 0 });
+      });
+
+      let creados = 0, actualizados = 0;
+      Object.values(porGrupo).forEach(grupo => {
+        const existente = DB.objetivoDe(grupo.colaborador.id, grupo.periodoId);
+        const asignacionPrevia = DB.asignacionDesempenoDe(grupo.colaborador.id, grupo.periodoId);
+        const jefe = jefeDe(grupo.colaborador.id);
+        const evaluadorId = (grupo.evaluador && grupo.evaluador.id) || (existente && existente.evaluadorId) || (asignacionPrevia && asignacionPrevia.evaluadorId) || (jefe && jefe.id);
+        if (!evaluadorId) { errores.push('Colaborador "' + grupo.colaborador.nombre + '": no se pudo determinar el evaluador (no tiene jefe asignado ni se indicó uno en el Excel).'); return; }
+        DB.asignarDesempeno(grupo.periodoId, grupo.colaborador.id, evaluadorId);
+        DB.guardarObjetivo({ periodoId: grupo.periodoId, colaboradorId: grupo.colaborador.id, evaluadorId, criterios: grupo.criterios });
+        if (existente) actualizados++; else creados++;
+      });
+
+      return { creados, actualizados, errores, total: Object.keys(porGrupo).length };
     },
 
     // ---- catálogos CRUD genéricos (RF-02, RF-04, RF-08) ----
@@ -669,8 +944,8 @@
   };
 
   global.TH = {
-    DB, uid, clamp, round1, promedio, descriptorPara,
-    ESTADOS_EVALUACION, siguienteEstadoValido, calcResultado,
+    DB, uid, clamp, round1, promedio, descriptorPara, descriptorParaPct,
+    ESTADOS_EVALUACION, siguienteEstadoValido, calcResultado, calcResultadoObjetivo,
     TIPOS_EVALUADOR, TIPO_CARGO_LABEL, PESOS, ESCALA, NO_OBSERVADO,
     DEMO_USER_IDS
   };

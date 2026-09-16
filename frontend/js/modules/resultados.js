@@ -35,7 +35,7 @@
           ` : ''}
           <div class="field">
             <label>Período</label>
-            <select id="periodoSelect">${TH.DB.periodos().map(p => `<option value="${p.id}" ${p.id === periodoId ? 'selected' : ''}>${p.nombre}${p.estado === 'Activo' ? ' · Activo' : ''}</option>`).join('')}</select>
+            <select id="periodoSelect">${TH.DB.periodosPorTipo('competencias').map(p => `<option value="${p.id}" ${p.id === periodoId ? 'selected' : ''}>${p.nombre}${p.estado === 'Activo' ? ' · Activo' : ''}</option>`).join('')}</select>
           </div>
         </div>
 

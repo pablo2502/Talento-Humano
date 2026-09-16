@@ -132,7 +132,7 @@
           <p class="section-label">Informe individual de colaborador (RF-19)</p>
           <div class="form-grid">
             <div class="field"><label>Colaborador</label><select id="colabSel">${visibles.map(u => `<option value="${u.id}">${u.nombre} — ${u.cargo}</option>`).join('')}</select></div>
-            <div class="field"><label>Período</label><select id="perSel">${TH.DB.periodos().map(p => `<option value="${p.id}" ${p.estado === 'Activo' ? 'selected' : ''}>${p.nombre}</option>`).join('')}</select></div>
+            <div class="field"><label>Período</label><select id="perSel">${TH.DB.periodosPorTipo('competencias').map(p => `<option value="${p.id}" ${p.estado === 'Activo' ? 'selected' : ''}>${p.nombre}</option>`).join('')}</select></div>
           </div>
           <div class="modal-actions" style="justify-content:flex-start;">
             <button type="button" class="btn btn--primary" id="genBtn">Generar informe en PDF</button>
@@ -148,7 +148,7 @@
         content.innerHTML = `
           <p class="section-label">Informe de mi equipo (RF-20)</p>
           <div class="form-grid">
-            <div class="field field--full"><label>Período</label><select id="perSel">${TH.DB.periodos().map(p => `<option value="${p.id}" ${p.estado === 'Activo' ? 'selected' : ''}>${p.nombre}</option>`).join('')}</select></div>
+            <div class="field field--full"><label>Período</label><select id="perSel">${TH.DB.periodosPorTipo('competencias').map(p => `<option value="${p.id}" ${p.estado === 'Activo' ? 'selected' : ''}>${p.nombre}</option>`).join('')}</select></div>
           </div>
           <div class="modal-actions" style="justify-content:flex-start;">
             <button type="button" class="btn btn--primary" id="genBtn">Generar informe en PDF</button>
@@ -165,7 +165,7 @@
           <p class="section-label">Informe por área (RF-20)</p>
           <div class="form-grid">
             <div class="field"><label>Área</label><select id="areaSel">${areasVisibles.map(a => `<option value="${a}">${a}</option>`).join('')}</select></div>
-            <div class="field"><label>Período</label><select id="perSel">${TH.DB.periodos().map(p => `<option value="${p.id}" ${p.estado === 'Activo' ? 'selected' : ''}>${p.nombre}</option>`).join('')}</select></div>
+            <div class="field"><label>Período</label><select id="perSel">${TH.DB.periodosPorTipo('competencias').map(p => `<option value="${p.id}" ${p.estado === 'Activo' ? 'selected' : ''}>${p.nombre}</option>`).join('')}</select></div>
           </div>
           <div class="modal-actions" style="justify-content:flex-start;">
             <button type="button" class="btn btn--primary" id="genBtn">Generar informe en PDF</button>
@@ -183,7 +183,7 @@
         content.innerHTML = `
           <p class="section-label">Informe general de la organización (RF-21)</p>
           <div class="form-grid">
-            <div class="field field--full"><label>Período</label><select id="perSel">${TH.DB.periodos().map(p => `<option value="${p.id}" ${p.estado === 'Activo' ? 'selected' : ''}>${p.nombre}</option>`).join('')}</select></div>
+            <div class="field field--full"><label>Período</label><select id="perSel">${TH.DB.periodosPorTipo('competencias').map(p => `<option value="${p.id}" ${p.estado === 'Activo' ? 'selected' : ''}>${p.nombre}</option>`).join('')}</select></div>
           </div>
           <div class="modal-actions" style="justify-content:flex-start;">
             <button type="button" class="btn btn--primary" id="genBtn">Generar informe en PDF</button>

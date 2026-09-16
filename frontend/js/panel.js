@@ -33,6 +33,7 @@
     informes: '<path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/>',
     busqueda: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
     ia: '<path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7L12 3z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z"/>',
+    objetivos: '<path d="M4 21V4"/><path d="M4 4h12l-2.2 4L16 12H4"/>',
     notificaciones: '<path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
     exit: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>'
   };
@@ -51,22 +52,46 @@
       { id: 'miperfil', label: 'Mi perfil', icon: 'perfil', roles: ['admin', 'colaborador'] },
       { id: 'notificaciones', label: 'Notificaciones', icon: 'notificaciones', roles: ['admin', 'colaborador'], badge: true }
     ] },
-    { section: 'Administración', items: [
+    { section: 'Administración general', items: [
       { id: 'usuarios', label: 'Usuarios', icon: 'usuarios', roles: ['admin'] },
       { id: 'roles', label: 'Roles y permisos', icon: 'roles', roles: ['admin'] },
-      { id: 'perfiles', label: 'Perfiles de cargo', icon: 'perfiles', roles: ['admin'] },
-      { id: 'competencias', label: 'Competencias', icon: 'competencias', roles: ['admin'] },
-      { id: 'comportamientos', label: 'Comportamientos', icon: 'comportamientos', roles: ['admin'] },
-      { id: 'periodos', label: 'Períodos', icon: 'periodos', roles: ['admin'] },
-      { id: 'evaluadores', label: 'Asignación 360°', icon: 'evaluadores', roles: ['admin'] }
+      { id: 'perfiles', label: 'Perfiles de cargo', icon: 'perfiles', roles: ['admin'] }
     ] },
-    { section: 'Evaluación', items: [
+    // Administración de Competencias 360° — catálogo + su propia Asignación,
+    // Períodos, Resultados, Informes y Recomendaciones.
+    { section: 'Administración · Competencias', items: [
+      { id: 'competencias', label: 'Competencias', icon: 'competencias', roles: ['admin'] },
+      { id: 'comportamientos', label: 'Comportamientos por competencia', icon: 'comportamientos', roles: ['admin'] },
+      { id: 'periodos', label: 'Períodos', icon: 'periodos', roles: ['admin'] },
+      { id: 'evaluadores', label: 'Asignación 360°', icon: 'evaluadores', roles: ['admin'] },
+      { id: 'resultados', label: 'Resultados', icon: 'resultados', roles: ['admin'] },
+      { id: 'informes', label: 'Informes', icon: 'informes', roles: ['admin'] },
+      { id: 'ia', label: 'Recomendaciones IA', icon: 'ia', roles: ['admin'] }
+    ] },
+    // Administración de Desempeño (evaluación por objetivos, 1 a 1) — misma
+    // estructura de botones que Competencias, con "Objetivos" como su
+    // equivalente de catálogo/carga de contenido.
+    { section: 'Administración · Desempeño', items: [
+      { id: 'periodosDesempeno', label: 'Períodos', icon: 'periodos', roles: ['admin'] },
+      { id: 'asignacionDesempeno', label: 'Asignación de Desempeño', icon: 'evaluadores', roles: ['admin'] },
+      { id: 'objetivos', label: 'Objetivos', icon: 'objetivos', roles: ['admin'] },
+      { id: 'resultadosDesempeno', label: 'Resultados', icon: 'resultados', roles: ['admin'] },
+      { id: 'informesDesempeno', label: 'Informes', icon: 'informes', roles: ['admin'] },
+      { id: 'iaDesempeno', label: 'Recomendaciones', icon: 'ia', roles: ['admin'] }
+    ] },
+    { section: 'Evaluación · Competencias 360°', items: [
       { id: 'evaluaciones', label: 'Realizar evaluación', icon: 'evaluaciones', roles: ['colaborador'] },
-      { id: 'resultados', label: 'Resultados', icon: 'resultados', roles: ['admin', 'colaborador'] },
+      { id: 'resultados', label: 'Resultados', icon: 'resultados', roles: ['colaborador'] },
       { id: 'seguimiento', label: 'Seguimiento', icon: 'seguimiento', roles: ['admin', 'colaborador'] },
-      { id: 'informes', label: 'Informes', icon: 'informes', roles: ['admin', 'colaborador'] },
+      { id: 'informes', label: 'Informes', icon: 'informes', roles: ['colaborador'] },
       { id: 'busqueda', label: 'Búsqueda', icon: 'busqueda', roles: ['admin', 'colaborador'] },
-      { id: 'ia', label: 'Recomendaciones IA', icon: 'ia', roles: ['admin', 'colaborador'] }
+      { id: 'ia', label: 'Recomendaciones IA', icon: 'ia', roles: ['colaborador'] }
+    ] },
+    { section: 'Evaluación · Desempeño', items: [
+      { id: 'evaluacionDesempeno', label: 'Evaluar desempeño', icon: 'evaluaciones', roles: ['colaborador'] },
+      { id: 'resultadosDesempeno', label: 'Resultados', icon: 'resultados', roles: ['colaborador'] },
+      { id: 'informesDesempeno', label: 'Informes', icon: 'informes', roles: ['colaborador'] },
+      { id: 'iaDesempeno', label: 'Recomendaciones', icon: 'ia', roles: ['colaborador'] }
     ] }
   ];
 
@@ -142,15 +167,23 @@
     roles: { title: 'Roles y permisos', desc: 'Consulta los permisos asociados a cada rol (RF-03).' },
     perfiles: { title: 'Perfiles de cargo', desc: 'Cargos institucionales y el nivel (Estratégico/Táctico/Apoyo) que determina sus competencias (RF-04).' },
     competencias: { title: 'Competencias', desc: 'Diccionario real de competencias institucionales, por nivel de cargo y SST, con indicadores 360° (RF-05).' },
-    comportamientos: { title: 'Comportamientos', desc: 'Consulta los comportamientos observables de cada indicador, según quién evalúa (RF-06).' },
-    periodos: { title: 'Períodos de evaluación', desc: 'Crea, activa y cierra los períodos de evaluación (RF-08).' },
-    evaluadores: { title: 'Asignación 360°', desc: 'Evaluaciones generadas automáticamente por período según la estructura organizacional (RF-09, RF-10, RF-28).' },
+    comportamientos: { title: 'Comportamientos por competencia', desc: 'Consulta los comportamientos observables de cada indicador, según quién evalúa (RF-06).' },
+    periodos: { title: 'Períodos de Competencias 360°', desc: 'Crea, activa y cierra los períodos de evaluación de Competencias 360° (RF-08).' },
+    evaluadores: { title: 'Asignación 360°', desc: 'Generadas automáticamente por período según el organigrama; agrega, reasigna o quita evaluaciones puntuales sin tocar el organigrama (RF-09, RF-10, RF-28).' },
     evaluaciones: { title: 'Realizar evaluación', desc: 'Autoevaluación y evaluación de tu jefe, pares y subalternos en el período activo (RF-11 a RF-13).' },
     resultados: { title: 'Resultados', desc: 'Resultado por evaluador (Auto/Jefe/Par/Subalterno/SST) y consolidado 360° (RF-14 a RF-16).' },
     seguimiento: { title: 'Seguimiento', desc: 'Evolución del desempeño entre períodos (RF-17, RF-18).' },
     informes: { title: 'Informes', desc: 'Genera informes individuales, por área o generales en PDF (RF-19 a RF-21).' },
     busqueda: { title: 'Búsqueda', desc: 'Filtra colaboradores, evaluaciones y resultados (RF-22).' },
-    ia: { title: 'Recomendaciones de IA', desc: 'Apoyo de inteligencia artificial para el análisis del desempeño (RF-25).' }
+    ia: { title: 'Recomendaciones de IA', desc: 'Apoyo de inteligencia artificial para el análisis de Competencias 360° (RF-25).' },
+
+    periodosDesempeno: { title: 'Períodos de Desempeño', desc: 'Crea, activa y cierra los períodos de Desempeño por objetivos — pueden durar, por ejemplo, un mes.' },
+    asignacionDesempeno: { title: 'Asignación de Desempeño', desc: 'Define quién evalúa a quién en la Evaluación de Desempeño (1 a 1, por defecto el jefe inmediato, editable a cualquier evaluador).' },
+    objetivos: { title: 'Objetivos', desc: 'Carga los objetivos y sus criterios ponderados (peso % por criterio, suman 100%) uno por uno o en bloque por Excel.' },
+    evaluacionDesempeno: { title: 'Evaluar desempeño', desc: 'Registra el avance de cada criterio de las personas que evalúas en el período activo de Desempeño.' },
+    resultadosDesempeno: { title: 'Resultados de Desempeño', desc: 'Resultado ponderado por criterio y consolidado del período (peso × avance de cada criterio).' },
+    informesDesempeno: { title: 'Informes de Desempeño', desc: 'Genera informes individuales y generales de Desempeño por objetivos en PDF.' },
+    iaDesempeno: { title: 'Recomendaciones de Desempeño', desc: 'Apoyo de inteligencia artificial para priorizar los criterios de Desempeño con mayor brecha.' }
   };
 
   function goTo(viewId, params) {
