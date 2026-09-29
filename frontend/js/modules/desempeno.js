@@ -671,83 +671,86 @@
   };
 
   /* =======================================================================
-     INFORMES DE DESEMPEÑO (PDF)
+     INFORMES DE DESEMPEÑO (PDF) — misma plantilla que Competencias 360°
+     (ver js/pdf-plantilla.js): encabezado con logo, franja de datos,
+     tabla de criterios y pie de página. Lo que cambia es el contenido:
+     aquí se listan criterios/peso/avance en vez de competencias.
   ======================================================================= */
 
-  function nuevoDocDesempeno(titulo, subtitulo) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
-    doc.text(titulo, 14, 20);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-    doc.text(subtitulo + ' · Generado el ' + new Date().toLocaleDateString('es-CO'), 14, 27);
-    doc.line(14, 31, 196, 31);
-    return doc;
-  }
-
   function informeIndividualDesempeno(colaboradorId, periodoId) {
+    const P = window.PdfPlantilla;
     const colaborador = TH.DB.usuario(colaboradorId);
     const periodo = TH.DB.periodo(periodoId);
     const objetivo = TH.DB.objetivoDe(colaboradorId, periodoId);
     const evaluador = objetivo ? TH.DB.usuario(objetivo.evaluadorId) : null;
     const r = objetivo ? TH.calcResultadoObjetivo(objetivo) : null;
 
-    const doc = nuevoDocDesempeno('Informe individual de desempeno por objetivos', periodo.nombre);
-    let y = 42;
-    doc.setFont('helvetica', 'bold'); doc.text('Colaborador: ' + colaborador.nombre, 14, y);
-    doc.setFont('helvetica', 'normal');
-    y += 7; doc.text('Cargo: ' + colaborador.cargo + '   Evaluador: ' + (evaluador ? evaluador.nombre : '-'), 14, y);
-    y += 10;
+    const { doc, y: y0 } = P.nuevoDoc('Informe individual de desempeño por objetivos', 'Evaluación por objetivos · ' + periodo.nombre);
+
+    const campos = [
+      { etiqueta: 'Colaborador', valor: colaborador.nombre },
+      { etiqueta: 'Cargo', valor: colaborador.cargo },
+      { etiqueta: 'Evaluador', valor: evaluador ? evaluador.nombre : 'Sin asignar' },
+      { etiqueta: 'Periodo', valor: periodo.nombre },
+      { etiqueta: 'Nivel', valor: r ? r.descriptor : 'Sin datos' }
+    ];
+    let y = P.dibujarCampos(doc, campos, y0);
 
     if (!objetivo) {
-      doc.text('Este colaborador no tiene objetivos cargados en este periodo.', 14, y);
+      P.dibujarParrafo(doc, 'Este colaborador no tiene objetivos cargados en este periodo.', y + 4, { italic: true });
     } else {
-      doc.setFont('helvetica', 'bold'); doc.text('Criterio', 14, y); doc.text('Peso', 140, y); doc.text('Avance', 170, y);
-      doc.line(14, y + 2, 196, y + 2);
-      doc.setFont('helvetica', 'normal'); y += 9;
-      objetivo.criterios.forEach(c => {
-        doc.text(doc.splitTextToSize(c.nombre, 120), 14, y);
-        doc.text(c.peso + '%', 140, y);
-        doc.text(c.avance + '%', 170, y);
-        y += 8;
+      const tabla = P.dibujarTabla(doc, {
+        y: y + 5,
+        columnas: [
+          { titulo: 'Criterio', ancho: 122, align: 'left' },
+          { titulo: 'Peso', ancho: 30, align: 'right' },
+          { titulo: 'Avance', ancho: 30, align: 'right', bold: true }
+        ],
+        filas: objetivo.criterios.map(c => [c.nombre, c.peso + '%', c.avance + '%']),
+        caja: true
       });
-      y += 4; doc.line(14, y, 196, y); y += 9;
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
-      doc.text('Resultado ponderado: ' + r.pctLogrado + '%  ·  Nivel: ' + r.descriptor, 14, y);
-      doc.setFontSize(10); y += 10;
-      doc.setFont('helvetica', 'normal');
+      y = tabla.next;
+
+      y = P.dibujarSeccion(doc, 'Resultado ponderado: ' + r.pctLogrado + '% · Nivel: ' + r.descriptor, y - 6);
       const rec = r.pctLogrado < 60
-        ? 'Se recomienda un plan de acompanamiento para cerrar la brecha frente a las metas definidas.'
+        ? 'Se recomienda un plan de acompañamiento para cerrar la brecha frente a las metas definidas.'
         : 'El colaborador avanza de forma favorable frente a sus objetivos del periodo.';
-      doc.text(doc.splitTextToSize(rec, 180), 14, y);
+      P.dibujarParrafo(doc, rec, y);
     }
 
+    P.dibujarPie(doc);
     doc.save(`informe-desempeno-${colaborador.nombre.replace(/\s+/g, '-').toLowerCase()}.pdf`);
   }
 
   function informeGeneralDesempeno(periodoId) {
+    const P = window.PdfPlantilla;
     const periodo = TH.DB.periodo(periodoId);
     const objetivos = TH.DB.objetivos().filter(o => o.periodoId === periodoId);
     const filas = objetivos.map(o => ({ colaborador: TH.DB.usuario(o.colaboradorId), resultado: TH.calcResultadoObjetivo(o) })).filter(f => f.colaborador);
-    const promedio = filas.length ? TH.round1(TH.promedio(filas.map(f => f.resultado.pctLogrado))) : 0;
+    const promedio = filas.length ? TH.round1(TH.promedio(filas.map(f => f.resultado.pctLogrado))) : null;
 
-    const doc = nuevoDocDesempeno('Informe general de Desempeno por objetivos', periodo.nombre);
-    let y = 42;
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
-    doc.text('Promedio general: ' + promedio + '%', 14, y);
-    doc.setFontSize(10); y += 10;
+    const { doc, y: y0 } = P.nuevoDoc('Informe general de desempeño por objetivos', 'Evaluación por objetivos · ' + periodo.nombre);
 
-    doc.setFont('helvetica', 'bold'); doc.text('Colaborador', 14, y); doc.text('Cargo', 100, y); doc.text('Resultado', 175, y);
-    doc.line(14, y + 2, 196, y + 2);
-    doc.setFont('helvetica', 'normal'); y += 9;
-    filas.forEach(f => {
-      doc.text(f.colaborador.nombre, 14, y);
-      doc.text(f.colaborador.cargo, 100, y);
-      doc.text(f.resultado.pctLogrado + '%', 175, y);
-      y += 7;
-      if (y > 275) { doc.addPage(); y = 20; }
+    const campos = [
+      { etiqueta: 'Organización', valor: 'Todos los colaboradores' },
+      { etiqueta: 'Colaboradores evaluados', valor: String(filas.length) },
+      { etiqueta: 'Periodo', valor: periodo.nombre },
+      { etiqueta: 'Promedio general', valor: promedio !== null ? promedio + '%' : 'Sin datos' }
+    ];
+    let y = P.dibujarCampos(doc, campos, y0);
+
+    P.dibujarTabla(doc, {
+      y: y + 5,
+      columnas: [
+        { titulo: 'Colaborador', ancho: 86, align: 'left' },
+        { titulo: 'Cargo', ancho: 66, align: 'left' },
+        { titulo: 'Resultado', ancho: 30, align: 'right', bold: true }
+      ],
+      filas: filas.map(f => [f.colaborador.nombre, f.colaborador.cargo, f.resultado.pctLogrado + '%']),
+      caja: true
     });
 
+    P.dibujarPie(doc);
     doc.save(`informe-general-desempeno-${periodo.nombre.replace(/\s+/g, '-').toLowerCase()}.pdf`);
   }
 

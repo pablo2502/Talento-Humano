@@ -11,6 +11,7 @@ public record InformeResponse(
         LocalDateTime fechaGeneracion,
         Long colaboradorId,
         String area,
+        Long periodoId,
         String urlDescarga
 ) {
 }

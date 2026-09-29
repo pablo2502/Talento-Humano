@@ -1,103 +1,202 @@
 /* =========================================================================
-   MODULES.informes — Informes individual, de equipo y general (RF-19 a RF-21)
-   Todos los informes se pueden descargar en PDF (RNF-11).
+   MODULES.informes — Informes individual, de equipo, por área y general
+   (RF-19 a RF-21). Se descargan en PDF (RNF-11) usando la plantilla común
+   de PdfPlantilla (ver js/pdf-plantilla.js): encabezado con logo
+   institucional, franja de datos, tabla de competencias + radar, y plan de
+   desarrollo. Lo único que cambia según el tipo de informe es el contenido
+   armado en informeIndividual/informeRoster — el layout es único y
+   compartido con Desempeño por objetivos (modules/desempeno.js).
 ========================================================================= */
 
 (function () {
   'use strict';
   window.Modules = window.Modules || {};
 
-  function nuevoDoc(titulo, subtitulo) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
-    doc.text(titulo, 14, 20);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-    doc.text(subtitulo + ' · Generado el ' + new Date().toLocaleDateString('es-CO'), 14, 27);
-    doc.line(14, 31, 196, 31);
-    return doc;
+  const P = window.PdfPlantilla;
+
+  /* -----------------------------------------------------------------
+     Cálculo de puntajes promedio por competencia (excluye SST, que es
+     binario Sí/No y no aplica a una escala 1-5) para uno o varios
+     colaboradores en un período — misma lógica que el backend.
+  ----------------------------------------------------------------- */
+  function puntajesPorCompetencia(colaboradorIds, periodoId) {
+    const ids = Array.isArray(colaboradorIds) ? colaboradorIds : [colaboradorIds];
+    const acumulado = {};
+    ids.forEach(cid => {
+      TH.DB.evaluacionesDe(cid, periodoId).forEach(ev => {
+        const indicadores = (ev.calificaciones && ev.calificaciones.indicadores) || {};
+        Object.keys(indicadores).forEach(id => {
+          const v = indicadores[id];
+          if (v === 'NO' || v === null || v === undefined) return;
+          const n = Number(v);
+          if (Number.isNaN(n)) return;
+          const info = TH.DB.indicadorInfo(id);
+          if (!info || info.competenciaTipo === 'sst') return;
+          const key = info.competenciaNombre;
+          if (!acumulado[key]) acumulado[key] = { suma: 0, n: 0 };
+          acumulado[key].suma += n;
+          acumulado[key].n += 1;
+        });
+      });
+    });
+    return Object.keys(acumulado).map(nombre => ({
+      nombre,
+      puntaje: TH.round1(acumulado[nombre].suma / acumulado[nombre].n)
+    }));
   }
 
+  function sumarDias(fechaISO, dias) {
+    const d = new Date(fechaISO + 'T00:00:00');
+    d.setDate(d.getDate() + dias);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return `${dd}/${mm}/${d.getFullYear()}`;
+  }
+
+  function planIndividual(colaborador, competencias, periodo) {
+    if (!competencias.length) return [];
+    const masBaja = competencias.reduce((a, b) => (b.puntaje < a.puntaje ? b : a));
+    const base = periodo.fechaFin;
+    return [
+      { accion: `Fortalecer la competencia "${masBaja.nombre}"`, responsable: colaborador.nombre, fecha: sumarDias(base, 30) },
+      { accion: 'Acompañamiento y mentoría con el jefe inmediato', responsable: 'Jefe inmediato', fecha: sumarDias(base, 60) },
+      { accion: 'Curso o actividad de formación para el próximo periodo', responsable: 'Gestión Humana', fecha: sumarDias(base, 90) }
+    ];
+  }
+
+  function planAgregado(competencias, periodo, responsablePrincipal) {
+    if (!competencias.length) return [];
+    const base = periodo.fechaFin;
+    const masBajas = competencias.slice().sort((a, b) => a.puntaje - b.puntaje).slice(0, 2);
+    const plan = masBajas.map(c => ({
+      accion: `Reforzar la competencia "${c.nombre}" en el equipo`,
+      responsable: responsablePrincipal,
+      fecha: sumarDias(base, 45)
+    }));
+    plan.push({ accion: 'Plan de formación para el próximo periodo', responsable: 'Gestión Humana', fecha: sumarDias(base, 90) });
+    return plan;
+  }
+
+  function dibujarCompetencias(doc, competencias, y) {
+    if (!competencias.length) {
+      return P.dibujarParrafo(doc, 'No se registran calificaciones de competencias para este periodo.', y + 4, { italic: true });
+    }
+
+    const conRadar = competencias.length >= 3;
+
+    if (!conRadar) {
+      const { next } = P.dibujarTabla(doc, {
+        y: y + 5,
+        columnas: [
+          { titulo: 'Competencia', ancho: P.CONTENT_W - 26, align: 'left' },
+          { titulo: 'Puntaje', ancho: 26, align: 'right', bold: true }
+        ],
+        filas: competencias.map(c => [c.nombre, c.puntaje.toFixed(1)]),
+        caja: true
+      });
+      return next;
+    }
+
+    // Radar a la izquierda, tabla de competencias a la derecha, ambos
+    // encerrados en recuadros de la misma altura (como en la plantilla).
+    const radarW = 78;
+    const tablaW = P.CONTENT_W - radarW;
+    const yTop = y;
+    const labelOffset = 4;
+    const labelWidth = 16;
+    const radioDeseado = 22;
+    const alturaMinima = 2 * (radioDeseado + labelOffset + labelWidth);
+
+    const { bottom, next } = P.dibujarTabla(doc, {
+      y: y + 5,
+      xStart: P.MARGIN + radarW,
+      columnas: [
+        { titulo: 'Competencia', ancho: tablaW - 26, align: 'left' },
+        { titulo: 'Puntaje', ancho: 26, align: 'right', bold: true }
+      ],
+      filas: competencias.map(c => [c.nombre, c.puntaje.toFixed(1)]),
+      caja: true,
+      minAltura: alturaMinima
+    });
+
+    P.dibujarRecuadro(doc, P.MARGIN, yTop, radarW, bottom);
+    const cx = P.MARGIN + radarW / 2;
+    const cy = yTop + (bottom - yTop) / 2;
+    const radioMax = Math.min(radarW, bottom - yTop) / 2 - (labelOffset + labelWidth);
+    P.dibujarRadar(doc, competencias, cx, cy, Math.min(radioDeseado, radioMax), labelOffset, labelWidth, 5);
+
+    return next;
+  }
+
+  function dibujarPlan(doc, plan, y) {
+    if (!plan.length) return y;
+    let yy = P.dibujarSeccion(doc, 'Plan de desarrollo', y);
+    const { next } = P.dibujarTabla(doc, {
+      y: yy,
+      columnas: [
+        { titulo: 'Acción', ancho: 96, align: 'left', color: P.GRAY_TEXT },
+        { titulo: 'Responsable', ancho: 52, align: 'left', color: P.GRAY_TEXT },
+        { titulo: 'Fecha', ancho: 34, align: 'left', color: P.GRAY_TEXT }
+      ],
+      filas: plan.map(p => [p.accion, p.responsable, p.fecha]),
+      caja: true
+    });
+    return next;
+  }
+
+  /* -----------------------------------------------------------------
+     Informes por tipo (RF-19 a RF-21): mismo layout, contenido distinto.
+  ----------------------------------------------------------------- */
   function informeIndividual(colaboradorId, periodoId) {
     const colaborador = TH.DB.usuario(colaboradorId);
     const periodo = TH.DB.periodo(periodoId);
-    const evaluaciones = TH.DB.evaluacionesDe(colaboradorId, periodoId);
     const consolidado = TH.DB.consolidar(colaboradorId, periodoId);
-    const historial = TH.DB.historialDe(colaboradorId).filter(h => h.periodo.estado === 'Cerrado');
+    const competencias = puntajesPorCompetencia(colaboradorId, periodoId);
 
-    const doc = nuevoDoc('Informe individual de desempeno 360', periodo.nombre);
-    let y = 42;
-    doc.setFont('helvetica', 'bold'); doc.text('Colaborador: ' + colaborador.nombre, 14, y);
-    doc.setFont('helvetica', 'normal');
-    y += 7; doc.text('Cargo: ' + colaborador.cargo + '   Area: ' + colaborador.area + '   Nivel: ' + TH.TIPO_CARGO_LABEL[colaborador.tipoCargo], 14, y);
-    y += 10;
+    const { doc, y: y0 } = P.nuevoDoc('Perfil de competencias', 'Evaluación de desempeño · ' + periodo.nombre);
 
-    doc.setFont('helvetica', 'bold'); doc.text('Evaluador', 14, y); doc.text('Tipo', 90, y); doc.text('Institucional', 120, y); doc.text('Especifico', 155, y); doc.text('Resultado', 180, y);
-    doc.line(14, y + 2, 196, y + 2);
-    doc.setFont('helvetica', 'normal'); y += 9;
-    evaluaciones.forEach(ev => {
-      const evaluador = TH.DB.usuario(ev.evaluadorId);
-      const r = TH.DB.resultado(ev);
-      doc.text(evaluador ? evaluador.nombre : '-', 14, y);
-      doc.text(TH.TIPOS_EVALUADOR[ev.tipoEvaluador] || ev.tipoEvaluador, 90, y);
-      doc.text(r && r.scoreInstitucional !== null ? r.scoreInstitucional + '/5' : '-', 120, y);
-      doc.text(r && r.scoreEspecifico !== null ? r.scoreEspecifico + '/5' : '-', 155, y);
-      doc.text(r ? r.score + '/5' : '-', 180, y);
-      y += 7;
-    });
-
-    y += 5; doc.line(14, y, 196, y); y += 9;
-    if (consolidado) {
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
-      doc.text('Resultado consolidado: ' + consolidado.scoreGeneral + '/5 (' + consolidado.pctGeneral + '%)  ·  Nivel: ' + consolidado.descriptor, 14, y);
-      doc.setFontSize(9); y += 6;
-      doc.setFont('helvetica', 'normal');
-      doc.text(doc.splitTextToSize(consolidado.reglaConsolidacion, 180), 14, y);
-      doc.setFontSize(10); y += 10;
-    }
-
-    if (historial.length) {
-      doc.setFont('helvetica', 'bold'); doc.text('Evolucion historica', 14, y); y += 7;
-      doc.setFont('helvetica', 'normal');
-      doc.text(historial.map(h => h.periodo.nombre + ': ' + h.consolidado.scoreGeneral + '/5').join('   |   '), 14, y);
-      y += 10;
-    }
-
-    doc.setFont('helvetica', 'bold'); doc.text('Recomendaciones', 14, y); y += 7;
-    doc.setFont('helvetica', 'normal');
-    const rec = consolidado && consolidado.scoreGeneral < 3.5
-      ? 'Se recomienda reforzar las competencias con menor puntaje mediante acompanamiento y capacitacion dirigida.'
-      : 'El colaborador mantiene un desempeno favorable; se recomienda continuar con el plan de desarrollo actual.';
-    doc.text(doc.splitTextToSize(rec, 180), 14, y);
+    const campos = [
+      { etiqueta: 'Colaborador', valor: colaborador.nombre },
+      { etiqueta: 'Cargo', valor: colaborador.cargo },
+      { etiqueta: 'Periodo', valor: periodo.nombre },
+      { etiqueta: 'Nivel', valor: consolidado ? consolidado.descriptor : 'Sin datos' }
+    ];
+    let y = P.dibujarCampos(doc, campos, y0);
+    y = dibujarCompetencias(doc, competencias, y);
+    dibujarPlan(doc, planIndividual(colaborador, competencias, periodo), y);
+    P.dibujarPie(doc);
 
     doc.save(`informe-individual-${colaborador.nombre.replace(/\s+/g, '-').toLowerCase()}.pdf`);
   }
 
-  function informeRoster(titulo, subtitulo, colaboradores, periodoId, nombreArchivo) {
+  function informeRoster(titulo, campoAlcance, colaboradores, periodoId, nombreArchivo, responsablePrincipal) {
     const periodo = TH.DB.periodo(periodoId);
-    const consolidados = colaboradores.map(c => ({ colaborador: c, consolidado: TH.DB.consolidar(c.id, periodoId) })).filter(c => c.consolidado);
-    const promedio = consolidados.length ? TH.round1(TH.promedio(consolidados.map(c => c.consolidado.scoreGeneral))) : 0;
+    const idsConDatos = [];
+    const consolidados = colaboradores
+      .map(c => {
+        const consolidado = TH.DB.consolidar(c.id, periodoId);
+        if (consolidado) idsConDatos.push(c.id);
+        return { colaborador: c, consolidado };
+      })
+      .filter(c => c.consolidado);
 
-    const doc = nuevoDoc(titulo, subtitulo + ' · ' + periodo.nombre);
-    let y = 42;
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
-    doc.text('Promedio: ' + promedio + '/5', 14, y);
-    doc.setFontSize(10); y += 10;
+    const promedio = consolidados.length
+      ? TH.round1(TH.promedio(consolidados.map(c => c.consolidado.scoreGeneral)))
+      : null;
+    const competencias = puntajesPorCompetencia(idsConDatos, periodoId);
 
-    doc.setFont('helvetica', 'bold'); doc.text('Colaborador', 14, y); doc.text('Cargo', 90, y); doc.text('Nivel', 150, y); doc.text('Resultado', 175, y);
-    doc.line(14, y + 2, 196, y + 2);
-    doc.setFont('helvetica', 'normal'); y += 9;
-    consolidados.forEach(c => {
-      doc.text(c.colaborador.nombre, 14, y);
-      doc.text(c.colaborador.cargo, 90, y);
-      doc.text(TH.TIPO_CARGO_LABEL[c.colaborador.tipoCargo], 150, y);
-      doc.text(c.consolidado.scoreGeneral + '/5', 175, y);
-      y += 7;
-    });
+    const { doc, y: y0 } = P.nuevoDoc(titulo, 'Evaluación de desempeño · ' + periodo.nombre);
 
-    y += 6; doc.setFont('helvetica', 'bold'); doc.text('Tendencia', 14, y); y += 7;
-    doc.setFont('helvetica', 'normal');
-    doc.text(subtitulo + ' registra un promedio de ' + promedio + '/5 en ' + periodo.nombre + '.', 14, y);
+    const campos = [
+      campoAlcance,
+      { etiqueta: 'Colaboradores evaluados', valor: String(consolidados.length) },
+      { etiqueta: 'Periodo', valor: periodo.nombre },
+      { etiqueta: 'Nivel promedio', valor: promedio !== null ? TH.descriptorPara(promedio) : 'Sin datos' }
+    ];
+    let y = P.dibujarCampos(doc, campos, y0);
+    y = dibujarCompetencias(doc, competencias, y);
+    dibujarPlan(doc, planAgregado(competencias, periodo, responsablePrincipal), y);
+    P.dibujarPie(doc);
 
     doc.save(nombreArchivo);
   }
@@ -155,7 +254,14 @@
           </div>
         `;
         content.querySelector('#genBtn').addEventListener('click', () => {
-          informeRoster('Informe de equipo', usuario.nombre, subalternos, content.querySelector('#perSel').value, `informe-equipo-${usuario.nombre.replace(/\s+/g, '-').toLowerCase()}.pdf`);
+          const periodoId = content.querySelector('#perSel').value;
+          informeRoster(
+            'Informe de equipo: ' + usuario.nombre,
+            { etiqueta: 'Equipo', valor: 'Colaboradores de ' + usuario.nombre },
+            subalternos, periodoId,
+            `informe-equipo-${usuario.nombre.replace(/\s+/g, '-').toLowerCase()}.pdf`,
+            'Jefe inmediato'
+          );
           UI.toast('Informe de equipo generado.');
         });
       }
@@ -173,8 +279,15 @@
         `;
         content.querySelector('#genBtn').addEventListener('click', () => {
           const area = content.querySelector('#areaSel').value;
+          const periodoId = content.querySelector('#perSel').value;
           const colaboradores = TH.DB.usuarios().filter(u => u.rolId === 'colaborador' && u.area === area && u.estado === 'Activo');
-          informeRoster('Informe por área', area, colaboradores, content.querySelector('#perSel').value, `informe-area-${area.replace(/\s+/g, '-').toLowerCase()}.pdf`);
+          informeRoster(
+            'Informe de área: ' + area,
+            { etiqueta: 'Área', valor: area },
+            colaboradores, periodoId,
+            `informe-area-${area.replace(/\s+/g, '-').toLowerCase()}.pdf`,
+            'Líder de área'
+          );
           UI.toast('Informe de área generado.');
         });
       }
@@ -192,7 +305,13 @@
         content.querySelector('#genBtn').addEventListener('click', () => {
           const periodoId = content.querySelector('#perSel').value;
           const colaboradores = TH.DB.usuarios().filter(u => u.rolId === 'colaborador' && u.estado === 'Activo');
-          informeRoster('Informe general de la organización', 'Todos los colaboradores', colaboradores, periodoId, `informe-general-${TH.DB.periodo(periodoId).nombre.replace(/\s+/g, '-').toLowerCase()}.pdf`);
+          informeRoster(
+            'Informe general de desempeño',
+            { etiqueta: 'Organización', valor: 'Todas las áreas' },
+            colaboradores, periodoId,
+            `informe-general-${TH.DB.periodo(periodoId).nombre.replace(/\s+/g, '-').toLowerCase()}.pdf`,
+            'Dirección general'
+          );
           UI.toast('Informe general generado.');
         });
       }

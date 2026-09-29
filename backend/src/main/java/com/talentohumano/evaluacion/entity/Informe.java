@@ -10,12 +10,15 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
 
@@ -24,7 +27,10 @@ import java.time.LocalDateTime;
  * <p>
  * Segun {@link TipoInforme}: INDIVIDUAL referencia un {@link #colaborador},
  * AREA referencia un {@link #area} (texto libre, igual al campo Perfil.area),
- * GENERAL no requiere ninguna referencia adicional.
+ * GENERAL no requiere ninguna referencia adicional. {@link #periodo} indica
+ * el ciclo de evaluacion sobre el que se calculo el contenido, y
+ * {@link #contenidoPdf} el documento ya renderizado (ver InformePdfRenderer)
+ * listo para descargar sin necesidad de regenerarlo.
  */
 @Entity
 @Table(name = "informes")
@@ -54,4 +60,14 @@ public class Informe {
 
     @Column(length = 150)
     private String area;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "periodo_id")
+    private Periodo periodo;
+
+    @Lob
+    @Column(name = "contenido_pdf")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private byte[] contenidoPdf;
 }
