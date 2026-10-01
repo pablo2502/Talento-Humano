@@ -1,22 +1,29 @@
 /* =========================================================================
-   MODULES.resultados — Consulta de resultados (RF-14, RF-15, RF-16)
-   Cada usuario consulta resultados según el alcance de su rol: un
-   colaborador ve los suyos (y los de su equipo, si tiene personas a
-   cargo); el administrador ve todos.
+   MODULES.evaluacionProfesor — Evaluación de Competencias Profesor.
+   Vista enfocada en el personal con tipoCargo 'profesor' (ver Propuesta
+   Profesores, competencias.js): mismo motor de Competencias 360° que el
+   resto de la organización, pero acotado a la planta profesor para que
+   Talento Humano la gestione como un proceso propio.
 ========================================================================= */
 
 (function () {
   'use strict';
   window.Modules = window.Modules || {};
 
-  window.Modules.resultados = function (root, ctx) {
-    const visibles = TH.DB.colaboradoresVisiblesPara(ctx.usuario).filter(u => u.estado === 'Activo');
-    let colaboradorId = (ctx.params && ctx.params.colaboradorId) || (visibles[0] && visibles[0].id);
+  window.Modules.evaluacionProfesor = function (root, ctx) {
+    const profesors = TH.DB.usuarios().filter(u => u.tipoCargo === 'profesor' && u.estado === 'Activo');
+    let colaboradorId = (ctx.params && ctx.params.colaboradorId) || (profesors[0] && profesors[0].id);
     let periodoId = TH.DB.periodoActivo().id;
 
     function pintar() {
-      if (!colaboradorId) {
-        root.innerHTML = `<div class="panel"><div class="empty-state"><div class="empty-state__icon">${THPanel.icon('resultados')}</div><h3>Sin colaboradores visibles</h3><p>No hay colaboradores dentro del alcance de tu rol todavía.</p></div></div>`;
+      if (!profesors.length) {
+        root.innerHTML = `
+          <div class="panel"><div class="empty-state">
+            <div class="empty-state__icon">${THPanel.icon('competencias')}</div>
+            <h3>Sin profesors registrados</h3>
+            <p>Aún no hay colaboradores con perfil Profesor (tipoCargo "profesor") activos en el sistema.</p>
+          </div></div>
+        `;
         return;
       }
 
@@ -24,15 +31,14 @@
       const periodo = TH.DB.periodo(periodoId);
       const evaluaciones = TH.DB.evaluacionesDe(colaboradorId, periodoId);
       const consolidado = TH.DB.consolidar(colaboradorId, periodoId);
+      const competenciasProfesor = TH.DB.competenciasAplicables('profesor');
 
       root.innerHTML = `
         <div class="filters-bar">
-          ${visibles.length > 1 ? `
-            <div class="field field--grow">
-              <label>Colaborador</label>
-              <select id="colabSelect">${visibles.map(u => `<option value="${u.id}" ${u.id === colaboradorId ? 'selected' : ''}>${u.nombre} — ${u.cargo}</option>`).join('')}</select>
-            </div>
-          ` : ''}
+          <div class="field field--grow">
+            <label>Profesor</label>
+            <select id="colabSelect">${profesors.map(u => `<option value="${u.id}" ${u.id === colaboradorId ? 'selected' : ''}>${u.nombre} — ${u.cargo}</option>`).join('')}</select>
+          </div>
           <div class="field">
             <label>Período</label>
             <select id="periodoSelect">${TH.DB.periodosPorTipo('competencias').map(p => `<option value="${p.id}" ${p.id === periodoId ? 'selected' : ''}>${p.nombre}${p.estado === 'Activo' ? ' · Activo' : ''}</option>`).join('')}</select>
@@ -40,18 +46,19 @@
         </div>
 
         <div class="panel" style="margin-bottom:18px;">
-          <p class="section-label">${colaborador.nombre} · ${colaborador.cargo} · Nivel ${TH.TIPO_CARGO_LABEL[colaborador.tipoCargo]}</p>
+          <p class="section-label">${colaborador.nombre} · ${colaborador.cargo} · ${colaborador.area}</p>
+          <p style="color:var(--ink-soft);font-size:.82rem;margin:-6px 0 0;">Evaluado sobre las ${competenciasProfesor.length} competencias de la pista Profesor (más SST, transversal a toda la institución).</p>
         </div>
 
         ${evaluaciones.length === 0 ? `
           <div class="panel"><div class="empty-state">
-            <div class="empty-state__icon">${THPanel.icon('resultados')}</div>
+            <div class="empty-state__icon">${THPanel.icon('competencias')}</div>
             <h3>Sin evaluaciones registradas</h3>
             <p>${colaborador.nombre} no tiene evaluaciones 360° en ${periodo.nombre}.</p>
           </div></div>
         ` : `
           <div class="panel" style="margin-bottom:18px;">
-            <p class="section-label">Resultado por evaluador — RF-13: cada evaluación se conserva por separado</p>
+            <p class="section-label">Resultado por evaluador</p>
             <div class="table-wrap">
               <table>
                 <thead><tr><th>Evaluador</th><th>Tipo</th><th>Estado</th><th>Institucional</th><th>Específico</th></tr></thead>
@@ -76,7 +83,7 @@
 
           ${consolidado ? `
             <div class="panel">
-              <p class="section-label">Resultado consolidado (RF-15)</p>
+              <p class="section-label">Resultado consolidado</p>
               <p style="color:var(--ink-soft);font-size:.8rem;margin:-6px 0 16px;">${consolidado.reglaConsolidacion}</p>
               <div class="summary-chips" style="margin-bottom:10px;">
                 <div class="summary-chip"><span>Resultado general</span><strong>${consolidado.scoreGeneral}/5</strong></div>
@@ -94,14 +101,37 @@
                   </div>
                 `).join('')}
               </div>
+              <div class="modal-actions" style="justify-content:flex-start;margin-top:18px;">
+                <button type="button" class="btn btn--primary" id="irInformeBtn">Generar informe en PDF</button>
+              </div>
             </div>
           ` : `<div class="panel"><p style="color:var(--ink-soft);font-size:.87rem;margin:0;">Aún no hay suficientes evaluaciones calificadas para consolidar el resultado de este período.</p></div>`}
         `}
+
+        <div class="panel" style="margin-top:18px;">
+          <p class="section-label">Catálogo de competencias Profesor</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Competencia</th><th>Descripción</th><th>Indicadores</th></tr></thead>
+              <tbody>
+                ${competenciasProfesor.map(c => `
+                  <tr>
+                    <td><strong>${c.nombre}</strong></td>
+                    <td style="max-width:420px;">${c.descripcion}</td>
+                    <td>${c.indicadores.length}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
       `;
 
-      const colabSelect = root.querySelector('#colabSelect');
-      if (colabSelect) colabSelect.addEventListener('change', e => { colaboradorId = e.target.value; pintar(); });
+      root.querySelector('#colabSelect').addEventListener('change', e => { colaboradorId = e.target.value; pintar(); });
       root.querySelector('#periodoSelect').addEventListener('change', e => { periodoId = e.target.value; pintar(); });
+
+      const irInformeBtn = root.querySelector('#irInformeBtn');
+      if (irInformeBtn) irInformeBtn.addEventListener('click', () => ctx.goTo('informes', { colaboradorId }));
     }
 
     pintar();

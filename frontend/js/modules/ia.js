@@ -82,6 +82,13 @@
         </div>
 
         ${consolidado ? `
+          <div class="panel" style="margin-bottom:18px;">
+            <p class="section-label">Comentario de retroalimentación</p>
+            <p style="font-size:.9rem;line-height:1.6;margin:0;">${comentarioRetroalimentacion(colaborador, consolidado, fortalezas, oportunidades)}</p>
+          </div>
+        ` : ''}
+
+        ${consolidado ? `
           <div class="stat-grid" style="margin-bottom:18px;">
             <div class="stat-tile" data-accent="red"><span>Resultado general</span><strong>${consolidado.scoreGeneral}/5</strong><small>${consolidado.pctGeneral}%</small></div>
             <div class="stat-tile"><span>Nivel alcanzado</span><strong>${consolidado.descriptor}</strong></div>
@@ -123,6 +130,20 @@
 
       const sel = root.querySelector('#colabSelect');
       if (sel) sel.addEventListener('change', e => { colaboradorId = e.target.value; pintar(); });
+    }
+
+    function comentarioRetroalimentacion(colaborador, consolidado, fortalezas, oportunidades) {
+      const partes = [];
+      partes.push(`Hola ${colaborador.nombre.split(' ')[0]}, este es tu comentario de retroalimentación del período, generado a partir de tu resultado consolidado de ${consolidado.scoreGeneral}/5 (${consolidado.descriptor}).`);
+      if (fortalezas.length) {
+        partes.push(`Tus principales fortalezas fueron ${fortalezas.map(f => `"${f.competencia.nombre}"`).join(', ')}: sigue apoyándote en ellas y compártelas con tu equipo.`);
+      }
+      if (oportunidades.length) {
+        partes.push(`Como oportunidad de mejora, prioriza ${oportunidades.map(o => `"${o.competencia.nombre}"`).join(', ')} durante el próximo período, apoyándote en tu jefe inmediato para un acompañamiento dirigido.`);
+      } else {
+        partes.push('No se identificaron brechas relevantes frente a la meta institucional en este período.');
+      }
+      return partes.join(' ');
     }
 
     function recomendacionPara(c) {

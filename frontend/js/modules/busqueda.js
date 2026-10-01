@@ -126,7 +126,7 @@
                   <td>${f.evaluador ? f.evaluador.nombre : '—'}</td>
                   <td>${TH.TIPOS_EVALUADOR[f.ev.tipoEvaluador] || f.ev.tipoEvaluador}</td>
                   <td>${f.periodo.nombre}</td>
-                  <td><span class="pill ${f.ev.estado === 'Pendiente' ? 'pill--pend' : (f.ev.estado === 'En proceso' ? 'pill--amber' : 'pill--ok')}">${f.ev.estado}</span></td>
+                  <td><span class="pill ${f.ev.estado === 'Finalizada' ? 'pill--ok' : 'pill--pend'}">${f.ev.estado}</span></td>
                   <td>${f.resultado !== null ? f.resultado + '/5' : '—'}</td>
                 </tr>
               `).join('')}

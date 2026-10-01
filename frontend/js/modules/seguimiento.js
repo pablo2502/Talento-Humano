@@ -23,6 +23,24 @@
     return out;
   }
 
+  // Redacción tipo IA de fortalezas y aspectos a mejorar, a partir de los
+  // indicadores con mejor y peor resultado del último período (RF-18).
+  function narrativaFortalezas(colaborador, items) {
+    if (!items.length) {
+      return `${colaborador.nombre} aún no cuenta con calificaciones suficientes para destacar fortalezas en este período.`;
+    }
+    const lista = items.map(i => `"${i.nombre}" (${i.actual}/5)`).join(', ');
+    return `${colaborador.nombre} muestra un desempeño sobresaliente en ${lista}. Mantener estas prácticas consolida su aporte al equipo y puede convertirlo en referente para sus pares en estos puntos.`;
+  }
+
+  function narrativaMejoras(colaborador, items) {
+    if (!items.length) {
+      return `${colaborador.nombre} no presenta brechas significativas frente a lo esperado en este período.`;
+    }
+    const lista = items.map(i => `"${i.nombre}" (${i.actual}/5)`).join(', ');
+    return `Se recomienda priorizar el desarrollo de ${lista}. Un plan de acompañamiento enfocado en estos puntos, con seguimiento periódico del jefe inmediato, ayudará a ${colaborador.nombre} a cerrar la brecha frente a lo esperado.`;
+  }
+
   window.Modules.seguimiento = function (root, ctx) {
     const visibles = TH.DB.colaboradoresVisiblesPara(ctx.usuario).filter(u => u.estado === 'Activo' && u.rolId === 'colaborador');
     let colaboradorId = (ctx.params && ctx.params.colaboradorId) || (visibles[0] && visibles[0].id);
@@ -54,13 +72,21 @@
         .filter(id => indPrimero[id] !== undefined)
         .map(id => {
           const info = TH.DB.indicadorInfo(id);
-          return info ? { nombre: info.indicadorNombre, competencia: info.competenciaNombre, delta: TH.round1(indUltimo[id] - indPrimero[id]), actual: indUltimo[id] } : null;
+          if (!info) return null;
+          // SST es conducta observable (seguridad y autocuidado); el resto
+          // del diccionario son competencias (habilidades/desempeño).
+          const tipoItem = info.competenciaTipo === 'sst' ? 'Conducta' : 'Competencia';
+          return { nombre: info.indicadorNombre, competencia: info.competenciaNombre, tipoItem, delta: TH.round1(indUltimo[id] - indPrimero[id]), actual: indUltimo[id] };
         })
         .filter(Boolean)
         .sort((a, b) => b.delta - a.delta);
 
       const crecimiento = cambios.filter(c => c.delta > 0).slice(0, 3);
       const disminucion = cambios.filter(c => c.delta < 0).slice(-3).reverse();
+
+      const porActual = cambios.slice().sort((a, b) => b.actual - a.actual);
+      const fortalezas = porActual.slice(0, 3);
+      const aspectosMejorar = porActual.slice(-3).reverse().filter(c => c.actual < 4.5);
 
       const objetivoScore = 4.0; // "Supera" — meta institucional de referencia
       const cumplimiento = ultimo.consolidado.scoreGeneral >= objetivoScore;
@@ -84,7 +110,7 @@
         <div class="panel" style="margin-bottom:18px;">
           <p class="section-label">Resultado por tipo de evaluador — ${ultimo.periodo.nombre}</p>
           <div class="results">
-            ${['JEFE', 'PAR', 'AUTO', 'SUBALTERNO', 'SST'].filter(t => ultimo.consolidado.detalle[t] !== undefined).map(t => `
+            ${['JEFE', 'PAR', 'AUTO', 'SUBALTERNO'].filter(t => ultimo.consolidado.detalle[t] !== undefined).map(t => `
               <div class="result-row">
                 <div class="result-row__label">${TH.TIPOS_EVALUADOR[t]}</div>
                 <div class="result-row__bar"><div class="result-row__fill" style="width:${ultimo.consolidado.detalle[t] / 5 * 100}%"></div></div>
@@ -103,25 +129,47 @@
           <div class="stat-tile"><span>Nivel alcanzado</span><strong>${ultimo.consolidado.descriptor}</strong></div>
         </div>
 
-        <div class="panel">
+        <div class="panel" style="margin-bottom:18px;">
           <p class="section-label">Indicadores con mayor crecimiento y disminución</p>
           <div class="form-grid">
             <div class="field field--full">
               <label>Mayor crecimiento</label>
               <div class="chip-picker">
-                ${crecimiento.length ? crecimiento.map(c => `<span class="pill pill--ok">${c.nombre} +${c.delta}</span>`).join('') : '<span class="pill pill--neutral">Sin variaciones positivas relevantes</span>'}
+                ${crecimiento.length ? crecimiento.map(c => `<span class="pill pill--ok">${c.nombre} <span class="cell-sub">(${c.tipoItem})</span> +${c.delta}</span>`).join('') : '<span class="pill pill--neutral">Sin variaciones positivas relevantes</span>'}
               </div>
             </div>
             <div class="field field--full">
               <label>Mayor disminución</label>
               <div class="chip-picker">
-                ${disminucion.length ? disminucion.map(c => `<span class="pill pill--warn">${c.nombre} ${c.delta}</span>`).join('') : '<span class="pill pill--neutral">Sin variaciones negativas relevantes</span>'}
+                ${disminucion.length ? disminucion.map(c => `<span class="pill pill--warn">${c.nombre} <span class="cell-sub">(${c.tipoItem})</span> ${c.delta}</span>`).join('') : '<span class="pill pill--neutral">Sin variaciones negativas relevantes</span>'}
               </div>
             </div>
           </div>
           <div class="ia-note">
             <svg viewBox="0 0 24 24"><path d="M12 16v-4"/><path d="M12 8h.01"/><circle cx="12" cy="12" r="9"/></svg>
-            <span>Comparación entre ${primero.periodo.nombre} y ${ultimo.periodo.nombre} (escala 1-5). Consulta el módulo "Recomendaciones IA" para sugerencias de mejora basadas en estos resultados.</span>
+            <span>Comparación entre ${primero.periodo.nombre} y ${ultimo.periodo.nombre} (escala 1-5). Cada indicador se etiqueta como Competencia o Conducta (SST).</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <p class="section-label">Fortalezas y aspectos a mejorar</p>
+          <div class="reco-list">
+            <div class="reco-card">
+              <span class="reco-card__badge reco-card__badge--fortaleza">Fortalezas</span>
+              <div class="reco-card__body">
+                <p>${narrativaFortalezas(colaborador, fortalezas)}</p>
+              </div>
+            </div>
+            <div class="reco-card">
+              <span class="reco-card__badge reco-card__badge--alta">Aspectos a mejorar</span>
+              <div class="reco-card__body">
+                <p>${narrativaMejoras(colaborador, aspectosMejorar)}</p>
+              </div>
+            </div>
+          </div>
+          <div class="ia-note">
+            <svg viewBox="0 0 24 24"><path d="M12 16v-4"/><path d="M12 8h.01"/><circle cx="12" cy="12" r="9"/></svg>
+            <span>Redactado automáticamente por IA a partir del resultado de ${ultimo.periodo.nombre}; el resultado oficial siempre es el calculado con las calificaciones registradas.</span>
           </div>
         </div>
       `;

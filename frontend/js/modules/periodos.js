@@ -68,14 +68,10 @@
       }));
 
       root.querySelectorAll('[data-cerrar]').forEach(b => b.addEventListener('click', () => {
-        UI.confirm('Cerrar período', 'Al cerrar el período, las evaluaciones finalizadas se consolidarán y sus resultados quedarán fijos para consulta e historial (RF-27). ¿Deseas continuar?', () => {
+        UI.confirm('Cerrar período', 'Al cerrar el período, sus resultados quedan fijos para consulta e historial (RF-27). Las evaluaciones que no se hayan finalizado quedarán pendientes sin poder completarse. ¿Deseas continuar?', () => {
           const periodoId = b.dataset.cerrar;
-          TH.DB.evaluaciones().filter(e => e.periodoId === periodoId && e.estado === 'Finalizada').forEach(e => {
-            TH.DB.avanzarEstado(e.id, 'Consolidada');
-            TH.DB.avanzarEstado(e.id, 'Cerrada');
-          });
           TH.DB.actualizar('periodos', periodoId, { estado: 'Cerrado' });
-          UI.toast('Período cerrado. Las evaluaciones finalizadas quedaron consolidadas.');
+          UI.toast('Período cerrado.');
           pintar();
         });
       }));

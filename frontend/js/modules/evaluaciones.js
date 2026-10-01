@@ -9,7 +9,7 @@
   window.Modules = window.Modules || {};
 
   function estadoPill(estado) {
-    const map = { 'Pendiente': 'pill--pend', 'En proceso': 'pill--amber', 'Finalizada': 'pill--ok', 'Consolidada': 'pill--ok', 'Cerrada': 'pill--neutral' };
+    const map = { 'Pendiente': 'pill--pend', 'Finalizada': 'pill--ok' };
     return `<span class="pill ${map[estado] || 'pill--neutral'}">${estado}</span>`;
   }
 
@@ -77,7 +77,7 @@
                         <td>${TH.TIPOS_EVALUADOR[ev.tipoEvaluador]}</td>
                         <td>${estadoPill(ev.estado)}</td>
                         <td>${r ? r.score + '/5' : '—'}</td>
-                        <td><button type="button" class="btn btn--primary btn--sm" data-open="${ev.id}">${ev.estado === 'Pendiente' ? 'Evaluar' : (['Consolidada', 'Cerrada'].includes(ev.estado) ? 'Ver' : 'Continuar')}</button></td>
+                        <td><button type="button" class="btn btn--primary btn--sm" data-open="${ev.id}">${ev.estado === 'Finalizada' ? 'Ver' : 'Evaluar'}</button></td>
                       </tr>
                     `;
                   }).join('')}
@@ -96,7 +96,7 @@
       const ev = TH.DB.evaluaciones().find(e => e.id === evaluacionId);
       const colaborador = TH.DB.usuario(ev.colaboradorId);
       const periodo = TH.DB.periodo(ev.periodoId);
-      const soloLectura = ['Consolidada', 'Cerrada'].includes(ev.estado);
+      const soloLectura = ev.estado === 'Finalizada';
       const esSST = ev.tipoEvaluador === 'SST';
 
       const grupos = esSST
@@ -194,8 +194,6 @@
           UI.toast('Califica todos los criterios antes de finalizar (puedes usar "No observado" si no tuviste oportunidad de observarlo).');
           return;
         }
-        const nextEstado = ev.estado === 'Pendiente' ? 'En proceso' : ev.estado;
-        if (nextEstado !== ev.estado) TH.DB.avanzarEstado(ev.id, nextEstado);
         const res = TH.DB.avanzarEstado(ev.id, 'Finalizada');
         if (!res.ok) { UI.toast(res.error); return; }
         if (ev.tipoEvaluador !== 'AUTO') {

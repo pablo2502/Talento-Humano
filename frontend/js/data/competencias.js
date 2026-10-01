@@ -1164,5 +1164,420 @@ window.COMPETENCIAS_360 = [
         }
       }
     ]
+  },
+  {
+    "id": "comp-prof-01",
+    "codigo": "COMP-PROF-01",
+    "nombre": "Negociación y Persuasión",
+    "tipo": "profesor",
+    "descripcion": "Capacidad para influir positivamente en otros mediante argumentos claros, manejo adecuado de desacuerdos y búsqueda de acuerdos que faciliten la operación, la comunicación entre áreas y la solución de necesidades de estudiantes, docentes, administrativos y aliados.",
+    "indicadores": [
+      {
+        "id": "comp-prof-01-ind-01",
+        "nombre": "Negociación con fundamento normativo",
+        "comportamientos": {
+          "auto": "Aplica de forma consciente criterios de utiliza el marco normativo institucional como fundamento para negociar acuerdos con estudiantes y colegas, revisando el resultado de sus actuaciones y corrigiendo desviaciones.",
+          "jefe": "Evalúa el impacto de la actuación de la persona sobre los objetivos del área y toma decisiones de mejora relacionadas con utiliza el marco normativo institucional como fundamento para negociar acuerdos con estudiantes y colegas.",
+          "par": "Cumple los acuerdos establecidos con sus pares y ajusta su interacción cuando identifica dificultades relacionadas con utiliza el marco normativo institucional como fundamento para negociar acuerdos con estudiantes y colegas.",
+          "subalterno": "Genera condiciones de confianza y claridad para que sus colaboradores puedan actuar correctamente frente a utiliza el marco normativo institucional como fundamento para negociar acuerdos con estudiantes y colegas."
+        },
+        "aplica": {
+          "auto": "Sí",
+          "jefe": "Sí",
+          "par": "Sí",
+          "subalterno": "Condicionado"
+        }
+      },
+      {
+        "id": "comp-prof-01-ind-02",
+        "nombre": "Liderazgo persuasivo orientado a resultados",
+        "comportamientos": {
+          "auto": "Analiza y estructura los elementos esenciales antes de actuar, asegurando que su intervención sea coherente con moviliza a estudiantes, pares académicos y aliados externos hacia el cumplimiento de los indicadores del programa.",
+          "jefe": "Establece expectativas y criterios de seguimiento para asegurar que moviliza a estudiantes, pares académicos y aliados externos hacia el cumplimiento de los indicadores del programa se traduzca en resultados verificables.",
+          "par": "Contribuye a la articulación con sus pares mediante acuerdos y acciones concretas que favorecen moviliza a estudiantes, pares académicos y aliados externos hacia el cumplimiento de los indicadores del programa.",
+          "subalterno": "Orienta a su equipo para que pueda ejecutar adecuadamente las actividades relacionadas con moviliza a estudiantes, pares académicos y aliados externos hacia el cumplimiento de los indicadores del programa."
+        },
+        "aplica": {
+          "auto": "Sí",
+          "jefe": "Sí",
+          "par": "Sí",
+          "subalterno": "Condicionado"
+        }
+      },
+      {
+        "id": "comp-prof-01-ind-03",
+        "nombre": "Flexibilidad y apertura en la negociación",
+        "comportamientos": {
+          "auto": "Identifica oportunidades de mejora en su propia actuación relacionadas con muestra flexibilidad y madurez profesional al replantear sus posturas en procesos institucionales y ajusta su respuesta de manera oportuna.",
+          "jefe": "Orienta la gestión y realiza seguimiento a la forma en que la persona aborda muestra flexibilidad y madurez profesional al replantear sus posturas en procesos institucionales, interviniendo cuando identifica desviaciones.",
+          "par": "Facilita la coordinación entre áreas compartiendo oportunamente los elementos necesarios para desarrollar muestra flexibilidad y madurez profesional al replantear sus posturas en procesos institucionales.",
+          "subalterno": "Brinda apoyo y resuelve inquietudes del equipo cuando las responsabilidades requieren muestra flexibilidad y madurez profesional al replantear sus posturas en procesos institucionales."
+        },
+        "aplica": {
+          "auto": "Sí",
+          "jefe": "Sí",
+          "par": "Sí",
+          "subalterno": "Condicionado"
+        }
+      }
+    ]
+  },
+  {
+    "id": "comp-prof-02",
+    "codigo": "COMP-PROF-02",
+    "nombre": "Capacidad Analítica",
+    "tipo": "profesor",
+    "descripcion": "Capacidad para analizar información operativa y académica, identificar patrones, problemas o mejoras y aportar insumos relevantes para la toma de decisiones y la ejecución eficiente de los procesos institucionales.",
+    "indicadores": [
+      {
+        "id": "comp-prof-02-ind-01",
+        "nombre": "Interpretación de lineamientos institucionales",
+        "comportamientos": {
+          "auto": "Aplica de forma consciente criterios de decodifica y articula de manera coherente los lineamientos, políticas y modelos pedagógicos de la institución, revisando el resultado de sus actuaciones y corrigiendo desviaciones.",
+          "jefe": "Evalúa el impacto de la actuación de la persona sobre los objetivos del área y toma decisiones de mejora relacionadas con decodifica y articula de manera coherente los lineamientos, políticas y modelos pedagógicos de la institución.",
+          "par": "Cumple los acuerdos establecidos con sus pares y ajusta su interacción cuando identifica dificultades relacionadas con decodifica y articula de manera coherente los lineamientos, políticas y modelos pedagógicos de la institución.",
+          "subalterno": "Genera condiciones de confianza y claridad para que sus colaboradores puedan actuar correctamente frente a decodifica y articula de manera coherente los lineamientos, políticas y modelos pedagógicos de la institución."
+        },
+        "aplica": {
+          "auto": "Sí",
+          "jefe": "Sí",
+          "par": "Sí",
+          "subalterno": "Condicionado"
+        }
+      },
+      {
+        "id": "comp-prof-02-ind-02",
+        "nombre": "Síntesis y análisis para la mejora continua",
+        "comportamientos": {
+          "auto": "Analiza y estructura los elementos esenciales antes de actuar, asegurando que su intervención sea coherente con sintetiza y transfiere información analítica de alto valor para el equipo, aportando datos que facilitan la mejora continua del programa académico.",
+          "jefe": "Establece expectativas y criterios de seguimiento para asegurar que sintetiza y transfiere información analítica de alto valor para el equipo, aportando datos que facilitan la mejora continua del programa académico se traduzca en resultados verificables.",
+          "par": "Contribuye a la articulación con sus pares mediante acuerdos y acciones concretas que favorecen sintetiza y transfiere información analítica de alto valor para el equipo, aportando datos que facilitan la mejora continua del programa académico.",
+          "subalterno": "Orienta a su equipo para que pueda ejecutar adecuadamente las actividades relacionadas con sintetiza y transfiere información analítica de alto valor para el equipo, aportando datos que facilitan la mejora continua del programa académico."
+        },
+        "aplica": {
+          "auto": "Sí",
+          "jefe": "Sí",
+          "par": "Sí",
+          "subalterno": "Condicionado"
+        }
+      },
+      {
+        "id": "comp-prof-02-ind-03",
+        "nombre": "Autocrítica pedagógica",
+        "comportamientos": {
+          "auto": "Identifica oportunidades de mejora en su propia actuación relacionadas con ejerce un proceso de autocrítica sobre sus propios diagnósticos y conclusiones pedagógicas y ajusta su respuesta de manera oportuna.",
+          "jefe": "Orienta la gestión y realiza seguimiento a la forma en que la persona aborda ejerce un proceso de autocrítica sobre sus propios diagnósticos y conclusiones pedagógicas, interviniendo cuando identifica desviaciones.",
+          "par": "Facilita la coordinación entre áreas compartiendo oportunamente los elementos necesarios para desarrollar ejerce un proceso de autocrítica sobre sus propios diagnósticos y conclusiones pedagógicas.",
+          "subalterno": "Brinda apoyo y resuelve inquietudes del equipo cuando las responsabilidades requieren ejerce un proceso de autocrítica sobre sus propios diagnósticos y conclusiones pedagógicas."
+        },
+        "aplica": {
+          "auto": "Sí",
+          "jefe": "Sí",
+          "par": "Sí",
+          "subalterno": "Condicionado"
+        }
+      }
+    ]
+  },
+  {
+    "id": "comp-prof-03",
+    "codigo": "COMP-PROF-03",
+    "nombre": "Liderazgo",
+    "tipo": "profesor",
+    "descripcion": "El liderazgo es la capacidad de inspirar, influir y movilizar a las personas hacia los objetivos institucionales con ética, enfoque humano y compromiso. En Uniempresarial, el líder gestiona y desarrolla el talento, y genera sinergias entre áreas para integrar esfuerzos, optimizar procesos y fortalecer la excelencia, el crecimiento sostenible y el desarrollo integral de la comunidad universitaria.",
+    "indicadores": [
+      {
+        "id": "comp-prof-03-ind-01",
+        "nombre": "Resolución de imprevistos académicos",
+        "comportamientos": {
+          "auto": "Aplica de forma consciente criterios de resuelve situaciones imprevistas para el desarrollo y cumplimiento del espacio académico, revisando el resultado de sus actuaciones y corrigiendo desviaciones.",
+          "jefe": "Evalúa el impacto de la actuación de la persona sobre los objetivos del área y toma decisiones de mejora relacionadas con resuelve situaciones imprevistas para el desarrollo y cumplimiento del espacio académico.",
+          "par": "Cumple los acuerdos establecidos con sus pares y ajusta su interacción cuando identifica dificultades relacionadas con resuelve situaciones imprevistas para el desarrollo y cumplimiento del espacio académico.",
+          "subalterno": "Genera condiciones de confianza y claridad para que sus colaboradores puedan actuar correctamente frente a resuelve situaciones imprevistas para el desarrollo y cumplimiento del espacio académico."
+        },
+        "aplica": {
+          "auto": "Sí",
+          "jefe": "Sí",
+          "par": "Sí",
+          "subalterno": "Condicionado"
+        }
+      },
+      {
+        "id": "comp-prof-03-ind-02",
+        "nombre": "Sinergia con el equipo docente",
+        "comportamientos": {
+          "auto": "Analiza y estructura los elementos esenciales antes de actuar, asegurando que su intervención sea coherente con fomenta la sinergia y el trabajo colaborativo dentro del equipo docente.",
+          "jefe": "Establece expectativas y criterios de seguimiento para asegurar que fomenta la sinergia y el trabajo colaborativo dentro del equipo docente se traduzca en resultados verificables.",
+          "par": "Contribuye a la articulación con sus pares mediante acuerdos y acciones concretas que favorecen fomenta la sinergia y el trabajo colaborativo dentro del equipo docente.",
+          "subalterno": "Orienta a su equipo para que pueda ejecutar adecuadamente las actividades relacionadas con fomenta la sinergia y el trabajo colaborativo dentro del equipo docente."
+        },
+        "aplica": {
+          "auto": "Sí",
+          "jefe": "Sí",
+          "par": "Sí",
+          "subalterno": "Condicionado"
+        }
+      },
+      {
+        "id": "comp-prof-03-ind-03",
+        "nombre": "Comunicación asertiva de objetivos académicos",
+        "comportamientos": {
+          "auto": "Identifica oportunidades de mejora en su propia actuación relacionadas con comunica con precisión los objetivos, directrices y expectativas académicas y ajusta su respuesta de manera oportuna.",
+          "jefe": "Orienta la gestión y realiza seguimiento a la forma en que la persona aborda comunica con precisión los objetivos, directrices y expectativas académicas, interviniendo cuando identifica desviaciones.",
+          "par": "Facilita la coordinación entre áreas compartiendo oportunamente los elementos necesarios para desarrollar comunica con precisión los objetivos, directrices y expectativas académicas.",
+          "subalterno": "Brinda apoyo y resuelve inquietudes del equipo cuando las responsabilidades requieren comunica con precisión los objetivos, directrices y expectativas académicas."
+        },
+        "aplica": {
+          "auto": "Sí",
+          "jefe": "Sí",
+          "par": "Sí",
+          "subalterno": "Condicionado"
+        }
+      },
+      {
+        "id": "comp-prof-03-ind-04",
+        "nombre": "Autoevaluación del estilo de liderazgo",
+        "comportamientos": {
+          "auto": "Aplica de forma consciente criterios de evalúa con sentido crítico su propio estilo de liderazgo y el impacto que genera en sus estudiantes y en el equipo docente, revisando el resultado de sus actuaciones y corrigiendo desviaciones.",
+          "jefe": "Evalúa el impacto de la actuación de la persona sobre los objetivos del área y toma decisiones de mejora relacionadas con evalúa con sentido crítico su propio estilo de liderazgo y el impacto que genera en sus estudiantes y en el equipo docente.",
+          "par": "Cumple los acuerdos establecidos con sus pares y ajusta su interacción cuando identifica dificultades relacionadas con evalúa con sentido crítico su propio estilo de liderazgo y el impacto que genera en sus estudiantes y en el equipo docente.",
+          "subalterno": "Genera condiciones de confianza y claridad para que sus colaboradores puedan actuar correctamente frente a evalúa con sentido crítico su propio estilo de liderazgo y el impacto que genera en sus estudiantes y en el equipo docente."
+        },
+        "aplica": {
+          "auto": "Sí",
+          "jefe": "Sí",
+          "par": "Sí",
+          "subalterno": "Condicionado"
+        }
+      }
+    ]
+  },
+  {
+    "id": "comp-prof-04",
+    "codigo": "COMP-PROF-04",
+    "nombre": "Innovación y Creatividad",
+    "tipo": "profesor",
+    "descripcion": "Capacidad para generar, adaptar y aplicar ideas, procesos o soluciones novedosas que agreguen valor a la gestión institucional, académica o empresarial, promoviendo la mejora continua, la transformación digital y la sostenibilidad como ejes del desarrollo de Uniempresarial. Implica cuestionar lo establecido, asumir riesgos calculados y promover una cultura de aprendizaje orientada a resultados y a la competitividad.",
+    "indicadores": [
+      {
+        "id": "comp-prof-04-ind-01",
+        "nombre": "Metodologías disruptivas en el aula",
+        "comportamientos": {
+          "auto": "Aplica de forma consciente criterios de diseña e implementa soluciones creativas y metodologías disruptivas en su práctica docente, revisando el resultado de sus actuaciones y corrigiendo desviaciones.",
+          "jefe": "Evalúa el impacto de la actuación de la persona sobre los objetivos del área y toma decisiones de mejora relacionadas con diseña e implementa soluciones creativas y metodologías disruptivas en su práctica docente.",
+          "par": "Cumple los acuerdos establecidos con sus pares y ajusta su interacción cuando identifica dificultades relacionadas con diseña e implementa soluciones creativas y metodologías disruptivas en su práctica docente.",
+          "subalterno": "Genera condiciones de confianza y claridad para que sus colaboradores puedan actuar correctamente frente a diseña e implementa soluciones creativas y metodologías disruptivas en su práctica docente."
+        },
+        "aplica": {
+          "auto": "Sí",
+          "jefe": "Sí",
+          "par": "Sí",
+          "subalterno": "Condicionado"
+        }
+      },
+      {
+        "id": "comp-prof-04-ind-02",
+        "nombre": "Sistematización de experiencias pedagógicas",
+        "comportamientos": {
+          "auto": "Analiza y estructura los elementos esenciales antes de actuar, asegurando que su intervención sea coherente con sistematiza y transfiere de manera estructurada sus experiencias pedagógicas exitosas e innovaciones de aula.",
+          "jefe": "Establece expectativas y criterios de seguimiento para asegurar que sistematiza y transfiere de manera estructurada sus experiencias pedagógicas exitosas e innovaciones de aula se traduzca en resultados verificables.",
+          "par": "Contribuye a la articulación con sus pares mediante acuerdos y acciones concretas que favorecen sistematiza y transfiere de manera estructurada sus experiencias pedagógicas exitosas e innovaciones de aula.",
+          "subalterno": "Orienta a su equipo para que pueda ejecutar adecuadamente las actividades relacionadas con sistematiza y transfiere de manera estructurada sus experiencias pedagógicas exitosas e innovaciones de aula."
+        },
+        "aplica": {
+          "auto": "Sí",
+          "jefe": "Sí",
+          "par": "Sí",
+          "subalterno": "Condicionado"
+        }
+      },
+      {
+        "id": "comp-prof-04-ind-03",
+        "nombre": "Estrategias pedagógicas de vanguardia",
+        "comportamientos": {
+          "auto": "Identifica oportunidades de mejora en su propia actuación relacionadas con implementa estrategias pedagógicas de vanguardia y metodologías disruptivas de aprendizaje y ajusta su respuesta de manera oportuna.",
+          "jefe": "Orienta la gestión y realiza seguimiento a la forma en que la persona aborda implementa estrategias pedagógicas de vanguardia y metodologías disruptivas de aprendizaje, interviniendo cuando identifica desviaciones.",
+          "par": "Facilita la coordinación entre áreas compartiendo oportunamente los elementos necesarios para desarrollar implementa estrategias pedagógicas de vanguardia y metodologías disruptivas de aprendizaje.",
+          "subalterno": "Brinda apoyo y resuelve inquietudes del equipo cuando las responsabilidades requieren implementa estrategias pedagógicas de vanguardia y metodologías disruptivas de aprendizaje."
+        },
+        "aplica": {
+          "auto": "Sí",
+          "jefe": "Sí",
+          "par": "Sí",
+          "subalterno": "Condicionado"
+        }
+      }
+    ]
+  },
+  {
+    "id": "comp-prof-05",
+    "codigo": "COMP-PROF-05",
+    "nombre": "Transformación Digital",
+    "tipo": "profesor",
+    "descripcion": "Capacidad para integrar herramientas tecnológicas, datos y procesos digitales en la gestión académica, administrativa y de servicio, fortaleciendo la eficiencia, la innovación y la toma de decisiones. Supone adaptarse al cambio tecnológico con mentalidad crítica, ética y colaborativa, garantizando que la digitalización contribuya al humanismo, la sostenibilidad y la excelencia institucional.",
+    "indicadores": [
+      {
+        "id": "comp-prof-05-ind-01",
+        "nombre": "Integración de herramientas digitales",
+        "comportamientos": {
+          "auto": "Aplica de forma consciente criterios de integra herramientas y soluciones digitales en su gestión académica, automatizando y optimizando los procesos de enseñanza, revisando el resultado de sus actuaciones y corrigiendo desviaciones.",
+          "jefe": "Evalúa el impacto de la actuación de la persona sobre los objetivos del área y toma decisiones de mejora relacionadas con integra herramientas y soluciones digitales en su gestión académica, automatizando y optimizando los procesos de enseñanza.",
+          "par": "Cumple los acuerdos establecidos con sus pares y ajusta su interacción cuando identifica dificultades relacionadas con integra herramientas y soluciones digitales en su gestión académica, automatizando y optimizando los procesos de enseñanza.",
+          "subalterno": "Genera condiciones de confianza y claridad para que sus colaboradores puedan actuar correctamente frente a integra herramientas y soluciones digitales en su gestión académica, automatizando y optimizando los procesos de enseñanza."
+        },
+        "aplica": {
+          "auto": "Sí",
+          "jefe": "Sí",
+          "par": "Sí",
+          "subalterno": "Condicionado"
+        }
+      },
+      {
+        "id": "comp-prof-05-ind-02",
+        "nombre": "Liderazgo en transferencia tecnológica",
+        "comportamientos": {
+          "auto": "Analiza y estructura los elementos esenciales antes de actuar, asegurando que su intervención sea coherente con lidera procesos de transferencia tecnológica dentro del equipo docente para mitigar la resistencia al cambio y modernizar el programa.",
+          "jefe": "Establece expectativas y criterios de seguimiento para asegurar que lidera procesos de transferencia tecnológica dentro del equipo docente para mitigar la resistencia al cambio y modernizar el programa se traduzca en resultados verificables.",
+          "par": "Contribuye a la articulación con sus pares mediante acuerdos y acciones concretas que favorecen lidera procesos de transferencia tecnológica dentro del equipo docente para mitigar la resistencia al cambio y modernizar el programa.",
+          "subalterno": "Orienta a su equipo para que pueda ejecutar adecuadamente las actividades relacionadas con lidera procesos de transferencia tecnológica dentro del equipo docente para mitigar la resistencia al cambio y modernizar el programa."
+        },
+        "aplica": {
+          "auto": "Sí",
+          "jefe": "Sí",
+          "par": "Sí",
+          "subalterno": "Condicionado"
+        }
+      },
+      {
+        "id": "comp-prof-05-ind-03",
+        "nombre": "Aprovechamiento de plataformas virtuales",
+        "comportamientos": {
+          "auto": "Identifica oportunidades de mejora en su propia actuación relacionadas con maximiza el potencial de las plataformas, entornos virtuales y recursos digitales institucionales, transformándolos en ecosistemas dinámicos de aprendizaje y ajusta su respuesta de manera oportuna.",
+          "jefe": "Orienta la gestión y realiza seguimiento a la forma en que la persona aborda maximiza el potencial de las plataformas, entornos virtuales y recursos digitales institucionales, transformándolos en ecosistemas dinámicos de aprendizaje, interviniendo cuando identifica desviaciones.",
+          "par": "Facilita la coordinación entre áreas compartiendo oportunamente los elementos necesarios para desarrollar maximiza el potencial de las plataformas, entornos virtuales y recursos digitales institucionales, transformándolos en ecosistemas dinámicos de aprendizaje.",
+          "subalterno": "Brinda apoyo y resuelve inquietudes del equipo cuando las responsabilidades requieren maximiza el potencial de las plataformas, entornos virtuales y recursos digitales institucionales, transformándolos en ecosistemas dinámicos de aprendizaje."
+        },
+        "aplica": {
+          "auto": "Sí",
+          "jefe": "Sí",
+          "par": "Sí",
+          "subalterno": "Condicionado"
+        }
+      }
+    ]
+  },
+  {
+    "id": "comp-prof-06",
+    "codigo": "COMP-PROF-06",
+    "nombre": "Compromiso con el Desarrollo Profesional",
+    "tipo": "profesor",
+    "descripcion": "Capacidad para gestionar de manera proactiva la propia formación y actualización profesional, participando en espacios de aprendizaje continuo y compartiendo el conocimiento adquirido con sus pares, en coherencia con la mejora permanente de la práctica docente y el fortalecimiento institucional.",
+    "indicadores": [
+      {
+        "id": "comp-prof-06-ind-01",
+        "nombre": "Participación en formación continua",
+        "comportamientos": {
+          "auto": "Aplica de forma consciente criterios de participa activamente en espacios de formación, actualización y desarrollo profesional relacionados con su área de desempeño, revisando el resultado de sus actuaciones y corrigiendo desviaciones.",
+          "jefe": "Evalúa el impacto de la actuación de la persona sobre los objetivos del área y toma decisiones de mejora relacionadas con participa activamente en espacios de formación, actualización y desarrollo profesional relacionados con su área de desempeño.",
+          "par": "Cumple los acuerdos establecidos con sus pares y ajusta su interacción cuando identifica dificultades relacionadas con participa activamente en espacios de formación, actualización y desarrollo profesional relacionados con su área de desempeño.",
+          "subalterno": "Genera condiciones de confianza y claridad para que sus colaboradores puedan actuar correctamente frente a participa activamente en espacios de formación, actualización y desarrollo profesional relacionados con su área de desempeño."
+        },
+        "aplica": {
+          "auto": "Sí",
+          "jefe": "Sí",
+          "par": "Sí",
+          "subalterno": "Condicionado"
+        }
+      },
+      {
+        "id": "comp-prof-06-ind-02",
+        "nombre": "Transferencia de conocimiento entre pares",
+        "comportamientos": {
+          "auto": "Analiza y estructura los elementos esenciales antes de actuar, asegurando que su intervención sea coherente con comparte los conocimientos adquiridos entre pares para fortalecer los procesos académicos.",
+          "jefe": "Establece expectativas y criterios de seguimiento para asegurar que comparte los conocimientos adquiridos entre pares para fortalecer los procesos académicos se traduzca en resultados verificables.",
+          "par": "Contribuye a la articulación con sus pares mediante acuerdos y acciones concretas que favorecen comparte los conocimientos adquiridos entre pares para fortalecer los procesos académicos.",
+          "subalterno": "Orienta a su equipo para que pueda ejecutar adecuadamente las actividades relacionadas con comparte los conocimientos adquiridos entre pares para fortalecer los procesos académicos."
+        },
+        "aplica": {
+          "auto": "Sí",
+          "jefe": "Sí",
+          "par": "Sí",
+          "subalterno": "Condicionado"
+        }
+      },
+      {
+        "id": "comp-prof-06-ind-03",
+        "nombre": "Participación en eventos del sector",
+        "comportamientos": {
+          "auto": "Identifica oportunidades de mejora en su propia actuación relacionadas con participa en eventos académicos, científicos, empresariales y del sector que fortalecen sus competencias profesionales y ajusta su respuesta de manera oportuna.",
+          "jefe": "Orienta la gestión y realiza seguimiento a la forma en que la persona aborda participa en eventos académicos, científicos, empresariales y del sector que fortalecen sus competencias profesionales, interviniendo cuando identifica desviaciones.",
+          "par": "Facilita la coordinación entre áreas compartiendo oportunamente los elementos necesarios para desarrollar participa en eventos académicos, científicos, empresariales y del sector que fortalecen sus competencias profesionales.",
+          "subalterno": "Brinda apoyo y resuelve inquietudes del equipo cuando las responsabilidades requieren participa en eventos académicos, científicos, empresariales y del sector que fortalecen sus competencias profesionales."
+        },
+        "aplica": {
+          "auto": "Sí",
+          "jefe": "Sí",
+          "par": "Sí",
+          "subalterno": "Condicionado"
+        }
+      }
+    ]
+  },
+  {
+    "id": "comp-prof-07",
+    "codigo": "COMP-PROF-07",
+    "nombre": "Transformación Académica",
+    "tipo": "profesor",
+    "descripcion": "Capacidad para diseñar, desarrollar y actualizar experiencias de aprendizaje alineadas con el Proyecto Educativo Institucional (PEI), los resultados de aprendizaje, el modelo de educación dual y las necesidades del sector productivo, promoviendo una formación pertinente y de calidad.",
+    "indicadores": [
+      {
+        "id": "comp-prof-07-ind-01",
+        "nombre": "Actualización curricular",
+        "comportamientos": {
+          "auto": "Aplica de forma consciente criterios de participa activamente en procesos de actualización curricular y alineación de contenidos con los resultados de aprendizaje, revisando el resultado de sus actuaciones y corrigiendo desviaciones.",
+          "jefe": "Evalúa el impacto de la actuación de la persona sobre los objetivos del área y toma decisiones de mejora relacionadas con participa activamente en procesos de actualización curricular y alineación de contenidos con los resultados de aprendizaje.",
+          "par": "Cumple los acuerdos establecidos con sus pares y ajusta su interacción cuando identifica dificultades relacionadas con participa activamente en procesos de actualización curricular y alineación de contenidos con los resultados de aprendizaje.",
+          "subalterno": "Genera condiciones de confianza y claridad para que sus colaboradores puedan actuar correctamente frente a participa activamente en procesos de actualización curricular y alineación de contenidos con los resultados de aprendizaje."
+        },
+        "aplica": {
+          "auto": "Sí",
+          "jefe": "Sí",
+          "par": "Sí",
+          "subalterno": "Condicionado"
+        }
+      },
+      {
+        "id": "comp-prof-07-ind-02",
+        "nombre": "Integración del sector empresarial",
+        "comportamientos": {
+          "auto": "Analiza y estructura los elementos esenciales antes de actuar, asegurando que su intervención sea coherente con incorpora casos prácticos, proyectos y experiencias del sector empresarial que fortalecen la aplicación de conocimientos en contextos reales de aprendizaje.",
+          "jefe": "Establece expectativas y criterios de seguimiento para asegurar que incorpora casos prácticos, proyectos y experiencias del sector empresarial que fortalecen la aplicación de conocimientos en contextos reales de aprendizaje se traduzca en resultados verificables.",
+          "par": "Contribuye a la articulación con sus pares mediante acuerdos y acciones concretas que favorecen incorpora casos prácticos, proyectos y experiencias del sector empresarial que fortalecen la aplicación de conocimientos en contextos reales de aprendizaje.",
+          "subalterno": "Orienta a su equipo para que pueda ejecutar adecuadamente las actividades relacionadas con incorpora casos prácticos, proyectos y experiencias del sector empresarial que fortalecen la aplicación de conocimientos en contextos reales de aprendizaje."
+        },
+        "aplica": {
+          "auto": "Sí",
+          "jefe": "Sí",
+          "par": "Sí",
+          "subalterno": "Condicionado"
+        }
+      },
+      {
+        "id": "comp-prof-07-ind-03",
+        "nombre": "Uso ético de IA en el aula",
+        "comportamientos": {
+          "auto": "Identifica oportunidades de mejora en su propia actuación relacionadas con orienta a los estudiantes en el uso ético, responsable y crítico de la inteligencia artificial y los recursos digitales en actividades académicas y ajusta su respuesta de manera oportuna.",
+          "jefe": "Orienta la gestión y realiza seguimiento a la forma en que la persona aborda orienta a los estudiantes en el uso ético, responsable y crítico de la inteligencia artificial y los recursos digitales en actividades académicas, interviniendo cuando identifica desviaciones.",
+          "par": "Facilita la coordinación entre áreas compartiendo oportunamente los elementos necesarios para desarrollar orienta a los estudiantes en el uso ético, responsable y crítico de la inteligencia artificial y los recursos digitales en actividades académicas.",
+          "subalterno": "Brinda apoyo y resuelve inquietudes del equipo cuando las responsabilidades requieren orienta a los estudiantes en el uso ético, responsable y crítico de la inteligencia artificial y los recursos digitales en actividades académicas."
+        },
+        "aplica": {
+          "auto": "Sí",
+          "jefe": "Sí",
+          "par": "Sí",
+          "subalterno": "Condicionado"
+        }
+      }
+    ]
   }
 ];

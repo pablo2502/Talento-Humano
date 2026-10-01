@@ -45,6 +45,87 @@
     }));
   }
 
+  /* -----------------------------------------------------------------
+     DETALLE COMPLETO POR COMPETENCIA E INDICADOR (para el informe
+     individual detallado, inspirado en el reporte HR Suite V4 2024):
+     para cada indicador calcula el resultado ponderado por tipo de
+     evaluador usando los MISMOS pesos que TH.DB.consolidar(), así el
+     "Resultado" de cada comportamiento es consistente con el resultado
+     oficial de la evaluación (RNF-14).
+  ----------------------------------------------------------------- */
+  const TIPOS_PESO = [['AUTO', 'auto'], ['JEFE', 'jefe'], ['PAR', 'par'], ['SUBALTERNO', 'subalterno']];
+  const ETIQUETA_TIPO = { AUTO: 'Autoevaluación', JEFE: 'Jefe', PAR: 'Par', SUBALTERNO: 'Subalterno' };
+
+  function detalleColaborador(colaboradorId, periodoId) {
+    const colaborador = TH.DB.usuario(colaboradorId);
+    const pesos = TH.PESOS[colaborador.tipoCargo] || {};
+    const evaluaciones = TH.DB.evaluacionesDe(colaboradorId, periodoId);
+
+    const porTipo = { AUTO: [], JEFE: [], PAR: [], SUBALTERNO: [] };
+    let sstEval = null;
+    evaluaciones.forEach(e => {
+      if (e.tipoEvaluador === 'SST') { sstEval = e; return; }
+      if (porTipo[e.tipoEvaluador]) porTipo[e.tipoEvaluador].push(e);
+    });
+
+    function promedioIndicador(indicadorId, lista) {
+      const valores = [];
+      lista.forEach(e => {
+        const v = e.calificaciones && e.calificaciones.indicadores ? e.calificaciones.indicadores[indicadorId] : undefined;
+        if (v === undefined || v === null || v === 'NO') return;
+        const n = Number(v);
+        if (!Number.isNaN(n)) valores.push(n);
+      });
+      return valores.length ? TH.promedio(valores) : null;
+    }
+
+    const tiposActivos = TIPOS_PESO.filter(([, key]) => pesos[key]);
+
+    const competencias = TH.DB.competenciasAplicables(colaborador.tipoCargo).map(comp => {
+      const indicadores = comp.indicadores.map(ind => {
+        const porEvaluador = {};
+        let weightedSum = 0, usedWeight = 0;
+        tiposActivos.forEach(([tipo, key]) => {
+          const avg = promedioIndicador(ind.id, porTipo[tipo]);
+          if (avg === null) return;
+          porEvaluador[tipo] = TH.round1((avg / 5) * 100);
+          weightedSum += pesos[key] * avg;
+          usedWeight += pesos[key];
+        });
+        const resultado = usedWeight ? TH.round1(((weightedSum / usedWeight) / 5) * 100) : null;
+        return { id: ind.id, nombre: ind.nombre, porEvaluador, resultado };
+      });
+
+      const conDatos = indicadores.filter(i => i.resultado !== null);
+      const scoreTotal = conDatos.length ? TH.round1(TH.promedio(conDatos.map(i => i.resultado))) : null;
+
+      const porEvaluadorComp = {};
+      tiposActivos.forEach(([tipo]) => {
+        const vals = indicadores.map(i => i.porEvaluador[tipo]).filter(v => v !== undefined);
+        if (vals.length) porEvaluadorComp[tipo] = TH.round1(TH.promedio(vals));
+      });
+
+      return { id: comp.id, nombre: comp.nombre, tipo: comp.tipo, scoreTotal, porEvaluador: porEvaluadorComp, indicadores };
+    }).filter(c => c.scoreTotal !== null);
+
+    let sstDetalle = null;
+    if (sstEval) {
+      const r = TH.calcResultado(sstEval);
+      if (r) {
+        const indicadores = Object.keys(sstEval.calificaciones.indicadores || {}).map(id => {
+          const v = sstEval.calificaciones.indicadores[id];
+          if (v === 'NO' || v === null || v === undefined) return null;
+          const info = TH.DB.indicadorInfo(id);
+          const resultado = TH.round1((Number(v) / 5) * 100);
+          return { id, nombre: info ? info.indicadorNombre : id, resultado };
+        }).filter(Boolean);
+        sstDetalle = { scoreTotal: r.pct, indicadores };
+      }
+    }
+
+    return { colaborador, tiposActivos, competencias, sstDetalle };
+  }
+
   function sumarDias(fechaISO, dias) {
     const d = new Date(fechaISO + 'T00:00:00');
     d.setDate(d.getDate() + dias);
@@ -145,31 +226,189 @@
   }
 
   /* -----------------------------------------------------------------
+     Bandas de la escala de calificación (RF-14), para la leyenda de la
+     portada del informe individual detallado.
+  ----------------------------------------------------------------- */
+  const BANDAS_ESCALA = [
+    { rango: '0% – 29%', nivel: 'No cumple', color: 'RED', detalle: 'La conducta no se evidencia o se presenta de manera insuficiente.' },
+    { rango: '30% – 49%', nivel: 'Cumple parcialmente', color: 'AMBER', detalle: 'La conducta se evidencia de forma irregular o requiere mejora.' },
+    { rango: '50% – 69%', nivel: 'Cumple', color: 'AZUL', detalle: 'La conducta se evidencia de acuerdo con lo esperado.' },
+    { rango: '70% – 89%', nivel: 'Supera', color: 'LIMA', detalle: 'La conducta se evidencia de manera consistente y por encima de lo esperado.' },
+    { rango: '90% – 100%', nivel: 'Sobresale', color: 'GREEN', detalle: 'La conducta se evidencia de manera ejemplar y genera un impacto positivo.' }
+  ];
+  const COLORES_SERIE = { AUTO: [42, 150, 166], JEFE: [124, 165, 70], PAR: [214, 146, 30], SUBALTERNO: [180, 70, 70] };
+
+  function nuevaSeccionSegura(doc, y, alturaEstimada, titulo) {
+    if (y + alturaEstimada > 270) return P.nuevaPagina(doc, titulo);
+    return P.dibujarSeccion(doc, titulo, y);
+  }
+
+  function comentariosFortalezasYMejoras(competencias) {
+    const todos = [];
+    competencias.forEach(c => c.indicadores.forEach(i => {
+      if (i.resultado !== null) todos.push({ nombre: i.nombre, competencia: c.nombre, resultado: i.resultado });
+    }));
+    const fortalezas = todos.filter(i => i.resultado >= 80).sort((a, b) => b.resultado - a.resultado).slice(0, 6);
+    const mejoras = todos.filter(i => i.resultado < 80).sort((a, b) => a.resultado - b.resultado).slice(0, 6);
+    return { fortalezas, mejoras };
+  }
+
+  /* -----------------------------------------------------------------
      Informes por tipo (RF-19 a RF-21): mismo layout, contenido distinto.
+     El informe individual es el "Reporte Individual" completo (inspirado
+     en la plantilla HR Suite V4 2024): portada con leyenda de la escala,
+     resultado global por tipo de evaluador, radar comparativo, una
+     página de detalle por competencia (anillo, barras por evaluador,
+     fortalezas/oportunidades y tabla de comportamientos) y comentarios
+     finales. El logo institucional se redibuja en cada hoja (ver
+     PdfPlantilla.nuevaPagina).
   ----------------------------------------------------------------- */
   function informeIndividual(colaboradorId, periodoId) {
-    const colaborador = TH.DB.usuario(colaboradorId);
     const periodo = TH.DB.periodo(periodoId);
     const consolidado = TH.DB.consolidar(colaboradorId, periodoId);
-    const competencias = puntajesPorCompetencia(colaboradorId, periodoId);
+    const detalle = detalleColaborador(colaboradorId, periodoId);
+    const colaborador = detalle.colaborador;
+    const nombreArchivo = `informe-individual-${colaborador.nombre.replace(/\s+/g, '-').toLowerCase()}.pdf`;
 
-    const { doc, y: y0 } = P.nuevoDoc('Perfil de competencias', 'Evaluación de desempeño · ' + periodo.nombre);
+    const { doc, y: y0 } = P.nuevoDoc('Valoración por Competencias 360°', periodo.nombre);
 
     const campos = [
       { etiqueta: 'Colaborador', valor: colaborador.nombre },
       { etiqueta: 'Cargo', valor: colaborador.cargo },
-      { etiqueta: 'Periodo', valor: periodo.nombre },
-      { etiqueta: 'Nivel', valor: consolidado ? consolidado.descriptor : 'Sin datos' }
+      { etiqueta: 'Fecha de generación', valor: new Date().toLocaleDateString('es-CO') },
+      { etiqueta: 'Nivel alcanzado', valor: consolidado ? consolidado.descriptor : 'Sin datos' }
     ];
     let y = P.dibujarCampos(doc, campos, y0);
-    y = dibujarCompetencias(doc, competencias, y);
-    dibujarPlan(doc, planIndividual(colaborador, competencias, periodo), y);
-    P.dibujarPie(doc);
 
-    doc.save(`informe-individual-${colaborador.nombre.replace(/\s+/g, '-').toLowerCase()}.pdf`);
+    y = P.dibujarSeccion(doc, 'Escala de calificación', y);
+    BANDAS_ESCALA.forEach(b => {
+      const color = P[b.color];
+      doc.setFillColor(...color);
+      doc.rect(P.MARGIN, y - 3.2, 4, 4, 'F');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+      doc.setTextColor(...color);
+      doc.text(`${b.rango} · ${b.nivel}`, P.MARGIN + 7, y);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.3);
+      doc.setTextColor(...P.GRAY_TEXT);
+      const lineas = doc.splitTextToSize(b.detalle, P.CONTENT_W - 7);
+      doc.text(lineas, P.MARGIN + 7, y + 4.4);
+      y += 4.4 + lineas.length * 4 + 3.5;
+    });
+
+    if (!consolidado) {
+      P.dibujarParrafo(doc, 'Aún no hay evaluaciones calificadas para este colaborador en el período seleccionado.', y + 4, { italic: true });
+      P.dibujarPie(doc);
+      doc.save(nombreArchivo);
+      return;
+    }
+
+    // ---- Resultado global de la evaluación ----
+    y = P.nuevaPagina(doc, 'Resultado global de la evaluación');
+    const cx1 = P.PAGE_W / 2, cy1 = y + 22;
+    P.dibujarAnillo(doc, cx1, cy1, 18, consolidado.pctGeneral, { etiqueta: 'Resultado total' });
+    y = cy1 + 18 + 16;
+
+    const tipoColW = Math.min(26, (P.CONTENT_W - 70) / detalle.tiposActivos.length);
+    const resultadoGlobal = P.dibujarTabla(doc, {
+      y: y + 5,
+      columnas: [
+        { titulo: 'Competencia', ancho: P.CONTENT_W - tipoColW * detalle.tiposActivos.length, align: 'left' },
+        ...detalle.tiposActivos.map(([tipo]) => ({ titulo: ETIQUETA_TIPO[tipo], ancho: tipoColW, align: 'right' }))
+      ],
+      filas: detalle.competencias.map(c => [
+        c.nombre,
+        ...detalle.tiposActivos.map(([tipo]) => c.porEvaluador[tipo] !== undefined ? c.porEvaluador[tipo] + '%' : '—')
+      ]),
+      caja: true
+    });
+    y = resultadoGlobal.next;
+
+    if (detalle.sstDetalle) {
+      y = nuevaSeccionSegura(doc, y, 30, 'Resultado SST (transversal a toda la institución)');
+      y = P.dibujarBarrasEvaluador(doc, [{ etiqueta: 'Sistema de Gestión de Seguridad y Salud en el Trabajo', pct: detalle.sstDetalle.scoreTotal }], P.MARGIN, y + 4, 110);
+    }
+
+    // ---- Radar comparativo por tipo de evaluador ----
+    y = P.nuevaPagina(doc, 'Comparativo por tipo de evaluador');
+    P.dibujarParrafo(doc, 'Compara la autoevaluación del colaborador frente a la percepción de los demás evaluadores en cada competencia, para identificar puntos ciegos entre fortalezas y áreas de oportunidad.', y, { fontSize: 9 });
+    const categorias = detalle.competencias.map(c => c.nombre);
+    const series = detalle.tiposActivos.map(([tipo]) => ({
+      nombre: ETIQUETA_TIPO[tipo],
+      color: COLORES_SERIE[tipo],
+      valores: detalle.competencias.map(c => c.porEvaluador[tipo] !== undefined ? c.porEvaluador[tipo] : 0)
+    }));
+    const radio = 58;
+    const cx2 = P.PAGE_W / 2, cy2 = 90 + radio;
+    P.dibujarRadarMultiple(doc, categorias, series, cx2, cy2, radio, 4, 22, 100);
+    P.dibujarLeyenda(doc, series.map(s => ({ color: s.color, etiqueta: s.nombre })), P.MARGIN, cy2 + radio + 22);
+
+    // ---- Una página de detalle por cada competencia ----
+    detalle.competencias.forEach(comp => {
+      y = P.nuevaPagina(doc, comp.nombre);
+      const cx = P.MARGIN + 24, cy = y + 20;
+      P.dibujarAnillo(doc, cx, cy, 18, comp.scoreTotal, { etiqueta: 'Resultado total' });
+      const barrasItems = detalle.tiposActivos.map(([tipo]) => ({
+        etiqueta: ETIQUETA_TIPO[tipo],
+        pct: comp.porEvaluador[tipo] !== undefined ? comp.porEvaluador[tipo] : null
+      }));
+      P.dibujarBarrasEvaluador(doc, barrasItems, P.MARGIN + 58, y, P.CONTENT_W - 58 - 24);
+      y = cy + 18 + 16;
+
+      const fortalezasComp = comp.indicadores.filter(i => i.resultado !== null && i.resultado >= 80);
+      const oportunidadesComp = comp.indicadores.filter(i => i.resultado !== null && i.resultado < 80);
+
+      if (fortalezasComp.length) {
+        y = nuevaSeccionSegura(doc, y, 20, 'Comportamientos que se constituyen en fortaleza');
+        y = P.dibujarBullets(doc, fortalezasComp.map(i => i.nombre), y, P.GREEN);
+      }
+      if (oportunidadesComp.length) {
+        y = nuevaSeccionSegura(doc, y, 20, 'Comportamientos con áreas de oportunidad');
+        y = P.dibujarBullets(doc, oportunidadesComp.map(i => i.nombre), y, P.AMBER);
+      }
+
+      y = P.nuevaPagina(doc, comp.nombre + ' · Resultados por comportamiento');
+      const colTipoW = Math.min(22, (P.CONTENT_W - 70) / detalle.tiposActivos.length);
+      P.dibujarTabla(doc, {
+        y: y + 5,
+        columnas: [
+          { titulo: 'Comportamiento', ancho: P.CONTENT_W - colTipoW * detalle.tiposActivos.length - 20, align: 'left' },
+          ...detalle.tiposActivos.map(([tipo]) => ({ titulo: ETIQUETA_TIPO[tipo].slice(0, 4) + '.', ancho: colTipoW, align: 'right' })),
+          { titulo: 'Result.', ancho: 20, align: 'right', bold: true }
+        ],
+        filas: comp.indicadores.map(i => [
+          i.nombre,
+          ...detalle.tiposActivos.map(([tipo]) => i.porEvaluador[tipo] !== undefined ? i.porEvaluador[tipo] + '%' : '—'),
+          i.resultado !== null ? i.resultado + '%' : '—'
+        ]),
+        caja: true
+      });
+    });
+
+    // ---- Comentarios finales ----
+    const { fortalezas, mejoras } = comentariosFortalezasYMejoras(detalle.competencias);
+    y = P.nuevaPagina(doc, 'Comentarios de aspectos a mejorar');
+    y = P.dibujarBullets(
+      doc,
+      mejoras.length
+        ? mejoras.map(m => `Fortalecer "${m.nombre}" (${m.competencia}) — resultado actual ${m.resultado}%.`)
+        : ['No se identificaron comportamientos por debajo del 80% en este período.'],
+      y, P.AMBER
+    );
+
+    y = nuevaSeccionSegura(doc, y, 20, 'Comentarios de fortalezas');
+    P.dibujarBullets(
+      doc,
+      fortalezas.length
+        ? fortalezas.map(f => `"${f.nombre}" (${f.competencia}) — resultado ${f.resultado}%.`)
+        : ['No se identificaron comportamientos por encima del 80% en este período.'],
+      y, P.GREEN
+    );
+
+    P.dibujarPie(doc);
+    doc.save(nombreArchivo);
   }
 
-  function informeRoster(titulo, campoAlcance, colaboradores, periodoId, nombreArchivo, responsablePrincipal) {
+  function informeRoster(titulo, campoAlcance, colaboradores, periodoId, nombreArchivo, responsablePrincipal, compararConInstitucional) {
     const periodo = TH.DB.periodo(periodoId);
     const idsConDatos = [];
     const consolidados = colaboradores
@@ -191,8 +430,22 @@
       campoAlcance,
       { etiqueta: 'Colaboradores evaluados', valor: String(consolidados.length) },
       { etiqueta: 'Periodo', valor: periodo.nombre },
-      { etiqueta: 'Nivel promedio', valor: promedio !== null ? TH.descriptorPara(promedio) : 'Sin datos' }
+      { etiqueta: 'Nivel promedio', valor: promedio !== null ? `${promedio}/5 · ${TH.descriptorPara(promedio)}` : 'Sin datos' }
     ];
+
+    if (compararConInstitucional) {
+      const todos = TH.DB.usuarios().filter(u => u.rolId === 'colaborador' && u.estado === 'Activo');
+      const consolidadosInst = todos.map(u => TH.DB.consolidar(u.id, periodoId)).filter(Boolean);
+      const promedioInst = consolidadosInst.length ? TH.round1(TH.promedio(consolidadosInst.map(c => c.scoreGeneral))) : null;
+      const comparacion = promedio !== null && promedioInst !== null ? (promedio >= promedioInst ? 'por encima' : 'por debajo') : null;
+      campos.push({
+        etiqueta: 'Promedio institucional',
+        valor: promedioInst !== null
+          ? `${promedioInst}/5${comparacion ? ` (área ${comparacion} del promedio)` : ''}`
+          : 'Sin datos'
+      });
+    }
+
     let y = P.dibujarCampos(doc, campos, y0);
     y = dibujarCompetencias(doc, competencias, y);
     dibujarPlan(doc, planAgregado(competencias, periodo, responsablePrincipal), y);
@@ -202,6 +455,7 @@
   }
 
   window.Modules.informes = function (root, ctx) {
+    window.Modules.informes.generarInformeIndividual = informeIndividual;
     const usuario = ctx.usuario;
     const esAdmin = usuario.rolId === 'admin';
     const subalternos = esAdmin ? [] : TH.DB.subalternosTodos(usuario.id);
@@ -286,7 +540,8 @@
             { etiqueta: 'Área', valor: area },
             colaboradores, periodoId,
             `informe-area-${area.replace(/\s+/g, '-').toLowerCase()}.pdf`,
-            'Líder de área'
+            'Líder de área',
+            true
           );
           UI.toast('Informe de área generado.');
         });

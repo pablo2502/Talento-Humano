@@ -17,6 +17,23 @@
   const GRID = [213, 216, 220];
   const DARK = [34, 34, 34];
   const FILL_NAVY_LIGHT = [221, 227, 240];
+  const RED = [200, 29, 48];
+  const AMBER = [180, 116, 14];
+  const AZUL = [42, 84, 144];
+  const LIMA = [124, 165, 70];
+  const GREEN = [33, 122, 67];
+
+  // Colores de la escala de desempeño (RF-14), de más bajo a más alto —
+  // usados tanto en la leyenda de la portada como en anillos/barras.
+  const ESCALA_COLORES = [RED, AMBER, AZUL, LIMA, GREEN];
+
+  function colorParaPct(pct) {
+    if (pct >= 90) return GREEN;
+    if (pct >= 70) return LIMA;
+    if (pct >= 50) return AZUL;
+    if (pct >= 30) return AMBER;
+    return RED;
+  }
 
   const PAGE_W = 210;
   const MARGIN = 14;
@@ -67,6 +84,27 @@
     dibujarEncabezado(doc);
     const y = dibujarTitulo(doc, titulo, subtitulo);
     return { doc, y };
+  }
+
+  /**
+   * Agrega una página nueva y vuelve a dibujar el encabezado (logo
+   * institucional) en ella — así cada hoja del informe, no solo la
+   * primera, lleva el logo. Si se pasa `tituloSeccion`, lo dibuja como
+   * título de sección justo debajo del encabezado.
+   */
+  function nuevaPagina(doc, tituloSeccion) {
+    doc.addPage();
+    dibujarEncabezado(doc);
+    let y = 34;
+    if (tituloSeccion) y = dibujarSeccion(doc, tituloSeccion, y - 6) + 2;
+    return y;
+  }
+
+  /** Deja espacio para un bloque de `alturaEstimada` mm; si no cabe antes
+   *  del pie de página, salta a una página nueva (con logo) y continúa ahí. */
+  function asegurarEspacio(doc, y, alturaEstimada, tituloSeccion) {
+    if (y + alturaEstimada > 274) return nuevaPagina(doc, tituloSeccion);
+    return y;
   }
 
   function dibujarCampos(doc, campos, y) {
@@ -252,10 +290,157 @@
     }
   }
 
+  function dibujarArco(doc, cx, cy, radius, startDeg, endDeg) {
+    const steps = Math.max(2, Math.round(Math.abs(endDeg - startDeg) / 4));
+    let prev = null;
+    for (let i = 0; i <= steps; i++) {
+      const deg = startDeg + (endDeg - startDeg) * (i / steps);
+      const rad = (deg * Math.PI) / 180;
+      const x = cx + radius * Math.cos(rad);
+      const y = cy + radius * Math.sin(rad);
+      if (prev) doc.line(prev[0], prev[1], x, y);
+      prev = [x, y];
+    }
+  }
+
+  /** Anillo de porcentaje (como el "Resultado Total" de la plantilla),
+   *  con el número en el centro y una etiqueta debajo. */
+  function dibujarAnillo(doc, cx, cy, radius, pct, opts) {
+    const o = opts || {};
+    const color = o.color || colorParaPct(pct);
+    const grosor = o.grosor || 3.4;
+    doc.setLineWidth(grosor);
+    doc.setDrawColor(...GRID);
+    dibujarArco(doc, cx, cy, radius, 0, 359.9);
+    doc.setDrawColor(...color);
+    dibujarArco(doc, cx, cy, radius, -90, -90 + 3.6 * Math.max(0, Math.min(100, pct)));
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(radius > 14 ? 15 : 11);
+    doc.setTextColor(...color);
+    doc.text(Math.round(pct * 10) / 10 + '%', cx, cy + (radius > 14 ? 2 : 1.5), { align: 'center' });
+    if (o.etiqueta) {
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+      doc.setTextColor(...GRAY_TEXT);
+      doc.text(o.etiqueta, cx, cy + radius + 8, { align: 'center' });
+    }
+  }
+
+  /** Barras horizontales de porcentaje por tipo de evaluador.
+   *  items: [{ etiqueta, pct, color? }]. Devuelve la y siguiente. */
+  function dibujarBarrasEvaluador(doc, items, x, y, width) {
+    let yy = y;
+    items.forEach(it => {
+      const pct = it.pct === null || it.pct === undefined ? null : it.pct;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.2);
+      doc.setTextColor(...GRAY_TEXT);
+      doc.text(it.etiqueta, x, yy);
+      const barY = yy + 1.6;
+      doc.setFillColor(...GRID);
+      doc.rect(x, barY, width, 3.6, 'F');
+      if (pct !== null) {
+        const color = it.color || colorParaPct(pct);
+        const filled = (width * Math.max(0, Math.min(100, pct))) / 100;
+        doc.setFillColor(...color);
+        if (filled > 0.1) doc.rect(x, barY, filled, 3.6, 'F');
+      }
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8.2);
+      doc.setTextColor(...DARK);
+      doc.text(pct !== null ? pct + '%' : '—', x + width + 4, barY + 3);
+      yy += 9.5;
+    });
+    return yy;
+  }
+
+  /** Lista con viñetas, color configurable (fortalezas vs. oportunidades). */
+  function dibujarBullets(doc, items, y, color) {
+    let yy = y;
+    doc.setTextColor(...(color || DARK));
+    items.forEach(texto => {
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+      const lineas = doc.splitTextToSize('•  ' + texto, CONTENT_W - 4);
+      doc.text(lineas, MARGIN + 2, yy);
+      yy += lineas.length * 4.6 + 2;
+    });
+    return yy + 3;
+  }
+
+  /** Radar con varias series superpuestas (p.ej. una por tipo de
+   *  evaluador), en escala 0–escalaMax. series: [{ nombre, color, valores }] */
+  function dibujarRadarMultiple(doc, categorias, series, cx, cy, radius, labelOffset, labelWidth, escalaMax) {
+    const n = categorias.length;
+    const angleStep = (2 * Math.PI) / n;
+    const start = -Math.PI / 2;
+    const max = escalaMax || 100;
+
+    doc.setDrawColor(...GRID);
+    doc.setLineWidth(0.2);
+    for (let r = 1; r <= 5; r++) {
+      const rr = (radius * r) / 5;
+      let prev = null;
+      for (let i = 0; i <= n; i++) {
+        const a = start + angleStep * (i % n);
+        const x = cx + rr * Math.cos(a);
+        const y = cy + rr * Math.sin(a);
+        if (prev) doc.line(prev[0], prev[1], x, y);
+        prev = [x, y];
+      }
+    }
+    for (let i = 0; i < n; i++) {
+      const a = start + angleStep * i;
+      doc.line(cx, cy, cx + radius * Math.cos(a), cy + radius * Math.sin(a));
+    }
+
+    series.forEach(serie => {
+      const puntos = categorias.map((_, i) => {
+        const a = start + angleStep * i;
+        const valor = Math.max(0, Math.min(serie.valores[i] || 0, max));
+        const rr = (radius * valor) / max;
+        return [cx + rr * Math.cos(a), cy + rr * Math.sin(a)];
+      });
+      doc.setDrawColor(...serie.color);
+      doc.setLineWidth(0.7);
+      for (let i = 0; i < n; i++) {
+        const p1 = puntos[i], p2 = puntos[(i + 1) % n];
+        doc.line(p1[0], p1[1], p2[0], p2[1]);
+      }
+      doc.setFillColor(...serie.color);
+      puntos.forEach(p => doc.circle(p[0], p[1], 0.9, 'F'));
+    });
+
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.2);
+    doc.setTextColor(60, 60, 60);
+    for (let i = 0; i < n; i++) {
+      const a = start + angleStep * i;
+      const cos = Math.cos(a);
+      const lx = cx + (radius + labelOffset) * cos;
+      const ly = cy + (radius + labelOffset) * Math.sin(a) + 1.5;
+      const align = cos > 0.3 ? 'left' : cos < -0.3 ? 'right' : 'center';
+      const maxWidth = align === 'center' ? labelWidth * 1.7 : labelWidth;
+      doc.text(categorias[i], lx, ly, { align, maxWidth });
+    }
+  }
+
+  /** Leyenda horizontal de cuadritos de color + etiqueta (series de radar,
+   *  bandas de la escala, etc.). items: [{ color, etiqueta }] */
+  function dibujarLeyenda(doc, items, x, y) {
+    let xx = x;
+    items.forEach(it => {
+      doc.setFillColor(...it.color);
+      doc.rect(xx, y - 2.6, 3, 3, 'F');
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7.8);
+      doc.setTextColor(...DARK);
+      doc.text(it.etiqueta, xx + 4.5, y);
+      xx += 4.5 + doc.getTextWidth(it.etiqueta) + 7;
+    });
+    return y + 6;
+  }
+
   global.PdfPlantilla = {
-    NAVY, GRAY_TEXT, GRID, DARK, FILL_NAVY_LIGHT,
+    NAVY, GRAY_TEXT, GRID, DARK, FILL_NAVY_LIGHT, RED, AMBER, AZUL, LIMA, GREEN, ESCALA_COLORES,
     PAGE_W, MARGIN, CONTENT_W,
-    nuevoDoc, dibujarCampos, dibujarSeccion, dibujarParrafo, dibujarTabla, dibujarRadar, dibujarRecuadro, dibujarPie
+    colorParaPct,
+    nuevoDoc, nuevaPagina, asegurarEspacio,
+    dibujarCampos, dibujarSeccion, dibujarParrafo, dibujarTabla, dibujarRadar, dibujarRadarMultiple,
+    dibujarRecuadro, dibujarPie, dibujarAnillo, dibujarBarrasEvaluador, dibujarBullets, dibujarLeyenda
   };
 
 })(window);

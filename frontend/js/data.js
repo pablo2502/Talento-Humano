@@ -19,7 +19,8 @@
   // editable a mano y el módulo de Desempeño por objetivos — se cambia la
   // clave para que la demo se reconstruya con el nuevo modelo de datos.
   const STORAGE_KEY = 'th_db_v3';
-  const COMPETENCIAS_360 = global.COMPETENCIAS_360 || [];
+  const COMPETENCIAS_SEED = global.COMPETENCIAS_360 || [];
+  let COMPETENCIAS_360 = COMPETENCIAS_SEED;
 
   /* =======================================================================
      UTILIDADES
@@ -76,15 +77,17 @@
 
   const TIPOS_EVALUADOR = { AUTO: 'Autoevaluación', JEFE: 'Jefe', PAR: 'Par', SUBALTERNO: 'Subalterno', SST: 'SST' };
 
-  const TIPO_CARGO_LABEL = { estrategico: 'Estratégico', tactico: 'Táctico', apoyo: 'Apoyo' };
+  const TIPO_CARGO_LABEL = { estrategico: 'Estratégico', tactico: 'Táctico', apoyo: 'Apoyo', profesor: 'Profesor' };
 
   // 50% del 90% = .45 Jefe · 20% del 90% = .18 Par · 20% del 90% = .18 Auto
   // 10% del 90% = .09 Subalterno · SST 10% como ítem transversal independiente.
   // Apoyo no tiene personal a cargo: su peso de Subalterno se redistribuye en Jefe (60% del 90%).
+  // Profesor tampoco tiene personal a cargo: mismo esquema de pesos que Apoyo.
   const PESOS = {
     estrategico: { jefe: 0.45, par: 0.18, auto: 0.18, subalterno: 0.09, sst: 0.10 },
     tactico: { jefe: 0.45, par: 0.18, auto: 0.18, subalterno: 0.09, sst: 0.10 },
-    apoyo: { jefe: 0.54, par: 0.18, auto: 0.18, subalterno: 0, sst: 0.10 }
+    apoyo: { jefe: 0.54, par: 0.18, auto: 0.18, subalterno: 0, sst: 0.10 },
+    profesor: { jefe: 0.54, par: 0.18, auto: 0.18, subalterno: 0, sst: 0.10 }
   };
 
   function reglaConsolidacionTexto(tipoCargo) {
@@ -97,21 +100,36 @@
 
   /* =======================================================================
      ÍNDICE DE INDICADORES (a partir del diccionario real de competencias)
+     COMPETENCIAS_360 pasa a apuntar a state.competencias una vez la base
+     está lista (ver reindexCompetencias, llamada tras cargar/migrar el
+     estado) para que el admin pueda crear o editar competencias e
+     indicadores a mano y el índice se mantenga siempre sincronizado.
   ======================================================================= */
 
-  const SST_COMPETENCIA = COMPETENCIAS_360.find(c => c.tipo === 'sst') || { indicadores: [] };
+  let SST_COMPETENCIA = COMPETENCIAS_360.find(c => c.tipo === 'sst') || { indicadores: [] };
+  let INDICADOR_INDEX = {};
 
-  const INDICADOR_INDEX = {};
-  COMPETENCIAS_360.forEach(comp => {
-    comp.indicadores.forEach(ind => {
-      INDICADOR_INDEX[ind.id] = {
-        competenciaId: comp.id, competenciaNombre: comp.nombre, competenciaTipo: comp.tipo,
-        indicadorNombre: ind.nombre, comportamientos: ind.comportamientos, aplica: ind.aplica || null
-      };
+  function reindexCompetencias() {
+    COMPETENCIAS_360 = state.competencias;
+    SST_COMPETENCIA = COMPETENCIAS_360.find(c => c.tipo === 'sst') || { indicadores: [] };
+    INDICADOR_INDEX = {};
+    COMPETENCIAS_360.forEach(comp => {
+      comp.indicadores.forEach(ind => {
+        INDICADOR_INDEX[ind.id] = {
+          competenciaId: comp.id, competenciaNombre: comp.nombre, competenciaTipo: comp.tipo,
+          indicadorNombre: ind.nombre, comportamientos: ind.comportamientos, aplica: ind.aplica || null
+        };
+      });
     });
-  });
+  }
 
   function competenciasAplicables(tipoCargo) {
+    // Profesor es una pista cerrada y paralela (ver Propuesta Profesores): no
+    // combina con el set institucional administrativo, trae sus propias 7
+    // competencias (más SST, transversal a todos los roles).
+    if (tipoCargo === 'profesor') {
+      return COMPETENCIAS_360.filter(c => c.tipo === 'profesor');
+    }
     return COMPETENCIAS_360.filter(c => c.tipo === 'institucional' || c.tipo === tipoCargo);
   }
 
@@ -173,13 +191,14 @@
     { id: 'perfil-06', nombre: 'Coordinador de Presupuesto y Control', area: 'Administrativa y Financiera', tipoCargo: 'tactico', descripcion: 'Coordina el presupuesto y control institucional.', estado: 'Activo' },
     { id: 'perfil-07', nombre: 'Gestor de Nómina y Contratación', area: 'Talento Humano', tipoCargo: 'tactico', descripcion: 'Gestiona los procesos de nómina y contratación.', estado: 'Activo' },
     { id: 'perfil-08', nombre: 'Coordinador de Comunicaciones', area: 'Tecnología', tipoCargo: 'tactico', descripcion: 'Coordina las comunicaciones institucionales y digitales.', estado: 'Activo' },
-    { id: 'perfil-09', nombre: 'Docente Tiempo Completo Asociado', area: 'Académica', tipoCargo: 'tactico', descripcion: 'Docente de planta con dedicación de tiempo completo.', estado: 'Activo' },
+    { id: 'perfil-09', nombre: 'Profesor Tiempo Completo Asociado', area: 'Académica', tipoCargo: 'profesor', descripcion: 'Profesor de planta con dedicación de tiempo completo.', estado: 'Activo' },
     { id: 'perfil-10', nombre: 'Asistente Administrativo', area: 'Administrativa y Financiera', tipoCargo: 'apoyo', descripcion: 'Brinda soporte administrativo al área.', estado: 'Activo' },
     { id: 'perfil-11', nombre: 'Auxiliar de Biblioteca', area: 'Administrativa y Financiera', tipoCargo: 'apoyo', descripcion: 'Apoya la operación de biblioteca y recursos bibliográficos.', estado: 'Activo' },
     { id: 'perfil-12', nombre: 'Profesional de Selección, Formación y Desarrollo', area: 'Talento Humano', tipoCargo: 'apoyo', descripcion: 'Apoya los procesos de selección, formación y desarrollo.', estado: 'Activo' },
     { id: 'perfil-13', nombre: 'Técnico en Sistemas de Información', area: 'Tecnología', tipoCargo: 'apoyo', descripcion: 'Brinda soporte técnico a los sistemas de información.', estado: 'Activo' },
     { id: 'perfil-14', nombre: 'Asistente de Coformación', area: 'Tecnología', tipoCargo: 'apoyo', descripcion: 'Apoya los procesos de coformación empresarial.', estado: 'Activo' },
-    { id: 'perfil-15', nombre: 'Aprendiz Etapa Productiva', area: 'Talento Humano', tipoCargo: 'apoyo', descripcion: 'Aprendiz en etapa productiva del área.', estado: 'Activo' }
+    { id: 'perfil-15', nombre: 'Aprendiz Etapa Productiva', area: 'Talento Humano', tipoCargo: 'apoyo', descripcion: 'Aprendiz en etapa productiva del área.', estado: 'Activo' },
+    { id: 'perfil-16', nombre: 'Profesional de Bienestar Universitario y Salud Física', area: 'Bienestar Universitario', tipoCargo: 'apoyo', descripcion: 'Gestiona y ejecuta las actividades de bienestar, salud física y desarrollo humano de la comunidad estudiantil.', estado: 'Activo' }
   ];
 
   /* =======================================================================
@@ -207,14 +226,17 @@
     { id: 'u-11', nombre: 'Ricardo Vega', correo: 'ricardo.vega@empresa.com', password: '123456', documento: '1010012', rolId: 'colaborador', cargo: 'Profesional de Selección, Formación y Desarrollo', area: 'Talento Humano', perfilId: 'perfil-12', tipoCargo: 'apoyo', jefeId: 'u-07', estado: 'Activo', fechaIngreso: '2023-04-18' },
     { id: 'u-12', nombre: 'Daniela Rojas', correo: 'daniela.rojas@empresa.com', password: '123456', documento: '1010013', rolId: 'colaborador', cargo: 'Técnico en Sistemas de Información', area: 'Tecnología', perfilId: 'perfil-13', tipoCargo: 'apoyo', jefeId: 'u-08', estado: 'Activo', fechaIngreso: '2023-07-11' },
     { id: 'u-13', nombre: 'Esteban Molina', correo: 'esteban.molina@empresa.com', password: '123456', documento: '1010014', rolId: 'colaborador', cargo: 'Asistente de Coformación', area: 'Tecnología', perfilId: 'perfil-14', tipoCargo: 'apoyo', jefeId: 'u-08', estado: 'Activo', fechaIngreso: '2024-02-05' },
+    { id: 'u-16', nombre: 'Camilo Álvarez', correo: 'camilo.alvarez@empresa.com', password: '123456', documento: '1010017', rolId: 'colaborador', cargo: 'Profesional de Bienestar Universitario y Salud Física', area: 'Bienestar Universitario', perfilId: 'perfil-16', tipoCargo: 'apoyo', jefeId: 'u-07', estado: 'Activo', fechaIngreso: '2026-09-01' },
+
+    { id: 'u-15', nombre: 'Laura Jiménez', correo: 'laura.jimenez@empresa.com', password: '123456', documento: '1010016', rolId: 'colaborador', cargo: 'Profesor Tiempo Completo Asociado', area: 'Académica', perfilId: 'perfil-09', tipoCargo: 'profesor', jefeId: 'u-01', estado: 'Activo', fechaIngreso: '2022-01-15' },
 
     { id: 'u-14', nombre: 'Jorge Salamanca', correo: 'jorge.salamanca@empresa.com', password: '123456', documento: '1010015', rolId: 'colaborador', cargo: 'Asistente Administrativo', area: 'Administrativa y Financiera', perfilId: 'perfil-10', tipoCargo: 'apoyo', jefeId: 'u-05', estado: 'Inactivo', fechaIngreso: '2021-11-09' }
   ];
 
   // Accesos rápidos de demostración en login.html (spread de escenarios: admin,
-  // vértice sin jefe, mando medio con pares y subalternos, mando medio con un
-  // solo par, base sin subalternos).
-  const DEMO_USER_IDS = ['u-admin', 'u-01', 'u-04', 'u-08', 'u-12'];
+  // vértice sin jefe, profesor, mando medio con equipo a cargo, y el perfil de
+  // Desempeño por objetivos de Bienestar Universitario).
+  const DEMO_USER_IDS = ['u-admin', 'u-01', 'u-15', 'u-08', 'u-16'];
 
   /* =======================================================================
      PERÍODOS (RF-08)
@@ -238,7 +260,7 @@
      ESTADOS DE EVALUACIÓN (RF-27) — orden estricto, sin saltos ni retrocesos
   ======================================================================= */
 
-  const ESTADOS_EVALUACION = ['Pendiente', 'En proceso', 'Finalizada', 'Consolidada', 'Cerrada'];
+  const ESTADOS_EVALUACION = ['Pendiente', 'Finalizada'];
 
   function siguienteEstadoValido(actual, propuesto) {
     const i = ESTADOS_EVALUACION.indexOf(actual);
@@ -444,7 +466,7 @@
         const evs = generarEvaluacionesColaborador(c.id, periodo.id);
         evs.forEach(ev => {
           calificarSimulado(ev, c, scorePeriodo, 1);
-          ev.estado = 'Cerrada';
+          ev.estado = 'Finalizada';
           ev.fecha = periodo.fechaFin;
         });
         all = all.concat(evs);
@@ -462,10 +484,12 @@
             ev.estado = 'Finalizada';
             ev.fecha = '2026-08-05';
           } else if (ev.tipoEvaluador === 'JEFE') {
+            // Parcialmente calificada pero aún no finalizada: con solo dos
+            // estados (Pendiente/Finalizada), el avance real se ve en las
+            // calificaciones ya guardadas, no en el estado.
             calificarSimulado(ev, c, target, 0.6);
-            ev.estado = 'En proceso';
           }
-          // PAR, SUBALTERNO y SST quedan Pendiente para mostrar el flujo en curso.
+          // PAR, SUBALTERNO y SST quedan Pendiente (sin calificar) para mostrar el flujo en curso.
         });
         all = all.concat(evs);
       });
@@ -481,9 +505,14 @@
      en cada período mensual, y carga objetivos de ejemplo con 3 criterios
      ponderados (40/35/25 = 100). Dos colaboradores se dejan sin objetivos
      en el período activo para mostrar el flujo de carga (manual o Excel).
+     `criteriosPersonalizados` permite reemplazar los criterios genéricos
+     por los objetivos reales de un colaborador (ver "1. Objetivos de
+     Desempeño 2026...xlsx"); si su fechaIngreso es posterior al cierre de
+     un período, ese período histórico se omite para esa persona.
   ======================================================================= */
 
-  function construirDesempenoSeed(usuarios, periodosDesempeno) {
+  function construirDesempenoSeed(usuarios, periodosDesempeno, criteriosPersonalizados) {
+    criteriosPersonalizados = criteriosPersonalizados || {};
     const asignaciones = [];
     const objetivos = [];
     const candidatos = usuarios.filter(u => u.rolId === 'colaborador' && u.estado === 'Activo' && u.jefeId);
@@ -504,19 +533,26 @@
       });
 
       cerrados.forEach(periodo => {
+        if (c.fechaIngreso && c.fechaIngreso > periodo.fechaFin) return; // aún no había ingresado
         objetivos.push({
           id: uid('obj'), periodoId: periodo.id, colaboradorId: c.id, evaluadorId: c.jefeId,
-          estado: 'Cerrada', fecha: periodo.fechaFin,
+          estado: 'Finalizada', fecha: periodo.fechaFin,
           criterios: criteriosBase.map(cr => ({ id: uid('crit'), nombre: cr.nombre, peso: cr.peso, avance: 100 }))
         });
       });
 
       if (activo && !sinObjetivoActivo.has(c.id)) {
-        const avances = avancesActivoPorIndice[idx % avancesActivoPorIndice.length];
+        const personalizados = criteriosPersonalizados[c.id];
+        const criterios = personalizados
+          ? personalizados.map(cr => ({ id: uid('crit'), nombre: cr.nombre, peso: cr.peso, avance: cr.avance || 0 }))
+          : (() => {
+              const avances = avancesActivoPorIndice[idx % avancesActivoPorIndice.length];
+              return criteriosBase.map((cr, i) => ({ id: uid('crit'), nombre: cr.nombre, peso: cr.peso, avance: avances[i] }));
+            })();
         objetivos.push({
           id: uid('obj'), periodoId: activo.id, colaboradorId: c.id, evaluadorId: c.jefeId,
-          estado: avances.some(a => a > 0) ? 'En proceso' : 'Pendiente', fecha: null,
-          criterios: criteriosBase.map((cr, i) => ({ id: uid('crit'), nombre: cr.nombre, peso: cr.peso, avance: avances[i] }))
+          estado: 'Pendiente', fecha: null,
+          criterios
         });
       }
     });
@@ -552,6 +588,23 @@
   }
 
   /* =======================================================================
+     OBJETIVOS REALES 2026 — Profesional de Bienestar Universitario y Salud
+     Física (ver "1. Objetivos de Desempeño 2026 Profesional de Bienestar
+     Universitario y Salud Física.xlsx"). Pesos ya en porcentaje (suman 100);
+     avance en 0 porque el período activo aún no se ha evaluado.
+  ======================================================================= */
+
+  const CRITERIOS_CAMILO_ALVAREZ = [
+    { nombre: 'Gestionar y reportar la información del área de bienestar como insumo para el seguimiento institucional.', peso: 10, avance: 0 },
+    { nombre: 'Apoyar la articulación inter-áreas para el desarrollo de actividades de bienestar y desarrollo humano.', peso: 10, avance: 0 },
+    { nombre: 'Ejecutar actividades de bienestar y salud física (incluyendo pausas activas y jornadas de actividad física), promoviendo la participación estudiantil.', peso: 20, avance: 0 },
+    { nombre: 'Fortalecer la participación estudiantil mediante la gestión de clubes y programas deportivos.', peso: 20, avance: 0 },
+    { nombre: 'Mejorar la experiencia de los estudiantes mediante la calidad en la ejecución de las actividades de bienestar.', peso: 20, avance: 0 },
+    { nombre: 'Medir la percepción de los estudiantes frente a las actividades desarrolladas por el área de Bienestar Universitario.', peso: 10, avance: 0 },
+    { nombre: 'Ejecutar las actividades diseñadas por el área de bienestar con el fin de promover el bienestar integral y el éxito académico.', peso: 10, avance: 0 }
+  ];
+
+  /* =======================================================================
      ENSAMBLADO DE LA SEMILLA
   ======================================================================= */
 
@@ -564,19 +617,27 @@
     const evaluacionesActivas = evaluaciones.filter(e => e.periodoId === activo.id);
     const notificaciones = construirNotificacionesSeed(USUARIOS, evaluacionesActivas, activo.nombre);
 
-    const desempeno = construirDesempenoSeed(USUARIOS, periodosDesempeno);
+    const desempeno = construirDesempenoSeed(USUARIOS, periodosDesempeno, { 'u-16': CRITERIOS_CAMILO_ALVAREZ });
 
     return {
       roles: ROLES, perfiles: PERFILES, usuarios: USUARIOS, periodos: PERIODOS,
       evaluaciones, notificaciones,
-      asignacionesDesempeno: desempeno.asignaciones, objetivos: desempeno.objetivos
+      asignacionesDesempeno: desempeno.asignaciones, objetivos: desempeno.objetivos,
+      competencias: JSON.parse(JSON.stringify(COMPETENCIAS_SEED))
     };
   }
 
   if (!state) {
     state = construirSeed();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } else if (!state.competencias) {
+    // Migración: bases guardadas antes de habilitar el catálogo editable
+    // todavía no tienen state.competencias — se siembra una sola vez.
+    state.competencias = JSON.parse(JSON.stringify(COMPETENCIAS_SEED));
+    save();
   }
+
+  reindexCompetencias();
 
   /* =======================================================================
      API DE CONSULTA / MUTACIÓN
@@ -631,7 +692,6 @@
       const ev = state.evaluaciones.find(e => e.id === evaluacionId);
       if (!ev) return;
       ev.calificaciones.indicadores[indicadorId] = valor;
-      if (ev.estado === 'Pendiente') ev.estado = 'En proceso';
       save();
     },
     avanzarEstado(evaluacionId, nuevoEstado) {
@@ -659,8 +719,8 @@
     reasignarEvaluacion(evaluacionId, data) {
       const ev = state.evaluaciones.find(e => e.id === evaluacionId);
       if (!ev) return { ok: false, error: 'Evaluación no encontrada.' };
-      if (['Consolidada', 'Cerrada'].includes(ev.estado)) {
-        return { ok: false, error: 'No se puede reasignar una evaluación ya consolidada o cerrada.' };
+      if (ev.estado === 'Finalizada') {
+        return { ok: false, error: 'No se puede reasignar una evaluación ya finalizada.' };
       }
       const cambiaTipo = data.tipoEvaluador && data.tipoEvaluador !== ev.tipoEvaluador;
       if (data.evaluadorId) ev.evaluadorId = data.evaluadorId;
@@ -735,7 +795,7 @@
         descriptor: descriptorPara(scoreGeneral),
         detalle,
         evaluadoresAsignados: evaluaciones.length,
-        evaluadoresCompletos: evaluaciones.filter(e => ['Finalizada', 'Consolidada', 'Cerrada'].includes(e.estado)).length,
+        evaluadoresCompletos: evaluaciones.filter(e => e.estado === 'Finalizada').length,
         reglaConsolidacion: reglaConsolidacionTexto(usuario.tipoCargo)
       };
     },
@@ -828,7 +888,16 @@
       const crit = obj.criterios.find(c => c.id === criterioId);
       if (!crit) return;
       crit.avance = clamp(Number(avance) || 0, 0, 100);
-      if (obj.estado === 'Pendiente') obj.estado = 'En proceso';
+      save();
+    },
+    // RF: todo criterio con baja calificación (<70% de avance) requiere una
+    // justificación escrita antes de poder finalizar la evaluación.
+    actualizarJustificacionCriterio(objetivoId, criterioId, justificacion) {
+      const obj = state.objetivos.find(o => o.id === objetivoId);
+      if (!obj) return;
+      const crit = obj.criterios.find(c => c.id === criterioId);
+      if (!crit) return;
+      crit.justificacion = String(justificacion || '').slice(0, 500);
       save();
     },
     avanzarEstadoObjetivo(objetivoId, nuevoEstado) {
@@ -920,6 +989,54 @@
     },
     eliminar(coleccion, id) {
       state[coleccion] = state[coleccion].filter(i => i.id !== id);
+      save();
+    },
+
+    // ---- catálogo de competencias (editable por el admin) ----
+    crearCompetencia(data) {
+      const item = Object.assign({ id: uid('comp'), indicadores: [] }, data);
+      state.competencias.push(item);
+      reindexCompetencias();
+      save();
+      return item;
+    },
+    actualizarCompetencia(id, data) {
+      const item = state.competencias.find(c => c.id === id);
+      if (!item) return null;
+      Object.assign(item, data);
+      reindexCompetencias();
+      save();
+      return item;
+    },
+    eliminarCompetencia(id) {
+      state.competencias = state.competencias.filter(c => c.id !== id);
+      reindexCompetencias();
+      save();
+    },
+    crearIndicador(competenciaId, data) {
+      const comp = state.competencias.find(c => c.id === competenciaId);
+      if (!comp) return null;
+      const item = Object.assign({ id: uid(competenciaId + '-ind') }, data);
+      comp.indicadores.push(item);
+      reindexCompetencias();
+      save();
+      return item;
+    },
+    actualizarIndicador(competenciaId, indicadorId, data) {
+      const comp = state.competencias.find(c => c.id === competenciaId);
+      if (!comp) return null;
+      const item = comp.indicadores.find(i => i.id === indicadorId);
+      if (!item) return null;
+      Object.assign(item, data);
+      reindexCompetencias();
+      save();
+      return item;
+    },
+    eliminarIndicador(competenciaId, indicadorId) {
+      const comp = state.competencias.find(c => c.id === competenciaId);
+      if (!comp) return;
+      comp.indicadores = comp.indicadores.filter(i => i.id !== indicadorId);
+      reindexCompetencias();
       save();
     },
 

@@ -23,7 +23,7 @@
   const TIPO = 'desempeno';
 
   function estadoPill(estado) {
-    const map = { 'Pendiente': 'pill--pend', 'En proceso': 'pill--amber', 'Finalizada': 'pill--ok', 'Consolidada': 'pill--ok', 'Cerrada': 'pill--neutral' };
+    const map = { 'Pendiente': 'pill--pend', 'Finalizada': 'pill--ok' };
     return `<span class="pill ${map[estado] || 'pill--neutral'}">${estado}</span>`;
   }
 
@@ -34,6 +34,12 @@
         <div class="result-row__value">${pct}%</div>
       </div>
     `;
+  }
+
+  function claseAvance(pct) {
+    if (pct >= 90) return 'high';
+    if (pct >= 70) return 'mid';
+    return 'low';
   }
 
   /* =======================================================================
@@ -101,14 +107,10 @@
       }));
 
       root.querySelectorAll('[data-cerrar]').forEach(b => b.addEventListener('click', () => {
-        UI.confirm('Cerrar período', 'Al cerrar el período, los objetivos finalizados se consolidarán y sus resultados quedarán fijos para consulta e historial. ¿Deseas continuar?', () => {
+        UI.confirm('Cerrar período', 'Al cerrar el período, sus resultados quedan fijos para consulta e historial. Los objetivos que no se hayan finalizado quedarán pendientes sin poder completarse. ¿Deseas continuar?', () => {
           const periodoId = b.dataset.cerrar;
-          TH.DB.objetivos().filter(o => o.periodoId === periodoId && o.estado === 'Finalizada').forEach(o => {
-            TH.DB.avanzarEstadoObjetivo(o.id, 'Consolidada');
-            TH.DB.avanzarEstadoObjetivo(o.id, 'Cerrada');
-          });
           TH.DB.actualizar('periodos', periodoId, { estado: 'Cerrado' });
-          UI.toast('Período cerrado. Los objetivos finalizados quedaron consolidados.');
+          UI.toast('Período cerrado.');
           pintar();
         });
       }));
@@ -477,7 +479,7 @@
                         <td>${objetivo ? objetivo.criterios.length + ' criterio(s)' : '<span class="pill pill--neutral">Sin objetivos cargados</span>'}</td>
                         <td>${objetivo ? estadoPill(objetivo.estado) : '—'}</td>
                         <td>${r ? r.pctLogrado + '%' : '—'}</td>
-                        <td>${objetivo ? `<button type="button" class="btn btn--primary btn--sm" data-open="${objetivo.id}">${objetivo.estado === 'Pendiente' ? 'Evaluar' : (['Consolidada', 'Cerrada'].includes(objetivo.estado) ? 'Ver' : 'Continuar')}</button>` : '<span class="cell-sub">Pide a Administración que cargue sus objetivos</span>'}</td>
+                        <td>${objetivo ? `<button type="button" class="btn btn--primary btn--sm" data-open="${objetivo.id}">${objetivo.estado === 'Finalizada' ? 'Ver' : 'Evaluar'}</button>` : '<span class="cell-sub">Pide a Administración que cargue sus objetivos</span>'}</td>
                       </tr>
                     `;
                   }).join('')}
@@ -496,7 +498,7 @@
       const obj = TH.DB.objetivo(objetivoId);
       const colaborador = TH.DB.usuario(obj.colaboradorId);
       const periodo = TH.DB.periodo(obj.periodoId);
-      const soloLectura = ['Consolidada', 'Cerrada'].includes(obj.estado);
+      const soloLectura = obj.estado === 'Finalizada';
 
       function totalesHtml() {
         const r = TH.calcResultadoObjetivo(obj);
@@ -522,16 +524,27 @@
         </div>
 
         <div class="panel">
-          <p class="section-label">Avance por criterio (se acumula hasta el 100%; el resultado pondera cada criterio según su peso)</p>
-          <div class="criteria" style="margin-bottom:22px;">
+          <p class="section-label">Avance por objetivo (se acumula hasta el 100%; el resultado pondera cada uno según su peso)</p>
+          <div class="obj-list" style="margin-bottom:22px;">
             ${obj.criterios.map(c => `
-              <div class="criterion">
-                <div class="criterion__top"><h4>${c.nombre}</h4><span class="pill pill--neutral">Peso ${c.peso}%</span></div>
-                <div class="form-grid">
-                  <div class="field field--full">
-                    <label>Avance actual: <strong data-avance-label="${c.id}">${c.avance}%</strong></label>
-                    <input type="range" min="0" max="100" step="5" value="${c.avance}" data-avance="${c.id}" ${soloLectura ? 'disabled' : ''}>
-                  </div>
+              <div class="obj-card">
+                <div class="obj-card__head">
+                  <h4 class="obj-card__title">${c.nombre}</h4>
+                  <span class="pill pill--neutral obj-card__badge">Seguimiento</span>
+                </div>
+                <div class="obj-card__meta">
+                  <div class="obj-card__stat"><span>Meta</span><strong>100%</strong></div>
+                  <div class="obj-card__stat"><span>Peso</span><strong>${c.peso}%</strong></div>
+                  <div class="obj-card__stat"><span>Avance</span><strong data-avance-label="${c.id}">${c.avance}%</strong></div>
+                </div>
+                <div class="obj-card__progress">
+                  <input type="range" min="0" max="100" step="5" value="${c.avance}" data-avance="${c.id}" ${soloLectura ? 'disabled' : ''}>
+                  <div class="obj-card__bar"><div class="obj-card__fill obj-card__fill--${claseAvance(c.avance)}" data-avance-fill="${c.id}" style="width:${c.avance}%"></div></div>
+                  <span class="obj-card__pct" data-avance-pct="${c.id}">${c.avance}%</span>
+                </div>
+                <div class="obj-card__justificacion" data-justificacion-wrap="${c.id}" ${c.avance < 70 ? '' : 'hidden'}>
+                  <label>Justificación (obligatoria por baja calificación &lt;70%)</label>
+                  <textarea rows="2" data-justificacion="${c.id}" placeholder="Explica brevemente por qué este criterio no alcanzó el avance esperado..." ${soloLectura ? 'disabled' : ''}>${UI.escapeHtml(c.justificacion || '')}</textarea>
                 </div>
               </div>
             `).join('')}
@@ -539,6 +552,7 @@
 
           <div id="totalesWrap" style="margin-top:4px;padding-top:22px;border-top:1px solid var(--line);">
             ${totalesHtml()}
+            <div class="obj-general ${TH.calcResultadoObjetivo(obj).pctLogrado < 70 ? 'obj-general--low' : ''}" id="avanceGeneralBand">Avance General ${TH.calcResultadoObjetivo(obj).pctLogrado}%</div>
           </div>
 
           <div class="modal-actions" style="justify-content:flex-start;margin-top:22px;">
@@ -551,18 +565,35 @@
 
       root.querySelectorAll('[data-avance]').forEach(input => input.addEventListener('input', () => {
         const criterioId = input.dataset.avance;
-        TH.DB.actualizarAvanceCriterio(obj.id, criterioId, input.value);
-        root.querySelector(`[data-avance-label="${criterioId}"]`).textContent = input.value + '%';
+        const valor = Number(input.value);
+        TH.DB.actualizarAvanceCriterio(obj.id, criterioId, valor);
+        root.querySelector(`[data-avance-label="${criterioId}"]`).textContent = valor + '%';
+        root.querySelector(`[data-avance-pct="${criterioId}"]`).textContent = valor + '%';
+        const fill = root.querySelector(`[data-avance-fill="${criterioId}"]`);
+        fill.style.width = valor + '%';
+        fill.className = `obj-card__fill obj-card__fill--${claseAvance(valor)}`;
+        const wrap = root.querySelector(`[data-justificacion-wrap="${criterioId}"]`);
+        if (wrap) wrap.hidden = valor >= 70;
         const r = TH.calcResultadoObjetivo(obj);
         root.querySelector('#totPct').textContent = r.pctLogrado + '%';
         root.querySelector('#totDescriptor').textContent = r.descriptor;
         root.querySelector('#totCal').textContent = r.criteriosCompletos + ' / ' + r.totalCriterios;
+        const band = root.querySelector('#avanceGeneralBand');
+        band.textContent = `Avance General ${r.pctLogrado}%`;
+        band.className = `obj-general ${r.pctLogrado < 70 ? 'obj-general--low' : ''}`;
+      }));
+
+      root.querySelectorAll('[data-justificacion]').forEach(textarea => textarea.addEventListener('input', () => {
+        TH.DB.actualizarJustificacionCriterio(obj.id, textarea.dataset.justificacion, textarea.value);
       }));
 
       const finalizarBtn = root.querySelector('#finalizarBtn');
       if (finalizarBtn) finalizarBtn.addEventListener('click', () => {
-        const nextEstado = obj.estado === 'Pendiente' ? 'En proceso' : obj.estado;
-        if (nextEstado !== obj.estado) TH.DB.avanzarEstadoObjetivo(obj.id, nextEstado);
+        const sinJustificar = obj.criterios.find(c => c.avance < 70 && !(c.justificacion || '').trim());
+        if (sinJustificar) {
+          UI.toast(`Agrega una justificación para "${sinJustificar.nombre}" antes de finalizar (avance por debajo del 70%).`);
+          return;
+        }
         const res = TH.DB.avanzarEstadoObjetivo(obj.id, 'Finalizada');
         if (!res.ok) { UI.toast(res.error); return; }
         TH.DB.notificar(colaborador.id, 'Evaluación de desempeño finalizada', `${ctx.usuario.nombre} finalizó tu evaluación de desempeño del período ${periodo.nombre}.`);
@@ -622,16 +653,33 @@
           </div></div>
         ` : `
           <div class="panel" style="margin-bottom:18px;">
-            <p class="section-label">Resultado por criterio</p>
-            <div class="results">
+            <p class="section-label">Resultado por objetivo</p>
+            <div class="obj-list">
               ${objetivo.criterios.map(c => `
-                <div class="result-row">
-                  <div class="result-row__label">${c.nombre} <span class="cell-sub" style="display:inline;">(peso ${c.peso}%)</span></div>
-                  <div class="result-row__bar"><div class="result-row__fill" style="width:${c.avance}%"></div></div>
-                  <div class="result-row__value">${c.avance}%</div>
+                <div class="obj-card">
+                  <div class="obj-card__head">
+                    <h4 class="obj-card__title">${c.nombre}</h4>
+                    <span class="pill pill--neutral obj-card__badge">Seguimiento</span>
+                  </div>
+                  <div class="obj-card__meta">
+                    <div class="obj-card__stat"><span>Meta</span><strong>100%</strong></div>
+                    <div class="obj-card__stat"><span>Peso</span><strong>${c.peso}%</strong></div>
+                    <div class="obj-card__stat"><span>Avance</span><strong>${c.avance}%</strong></div>
+                  </div>
+                  <div class="obj-card__progress">
+                    <div class="obj-card__bar" style="flex:1;"><div class="obj-card__fill obj-card__fill--${claseAvance(c.avance)}" style="width:${c.avance}%"></div></div>
+                    <span class="obj-card__pct">${c.avance}%</span>
+                  </div>
+                  ${c.avance < 70 && c.justificacion ? `
+                    <div class="obj-card__justificacion">
+                      <label>Justificación</label>
+                      <p style="margin:0;font-size:.82rem;color:var(--navy-900);">${UI.escapeHtml(c.justificacion)}</p>
+                    </div>
+                  ` : ''}
                 </div>
               `).join('')}
             </div>
+            <div class="obj-general ${r.pctLogrado < 70 ? 'obj-general--low' : ''}">Avance General ${r.pctLogrado}%</div>
           </div>
 
           <div class="panel">
@@ -715,7 +763,15 @@
       const rec = r.pctLogrado < 60
         ? 'Se recomienda un plan de acompañamiento para cerrar la brecha frente a las metas definidas.'
         : 'El colaborador avanza de forma favorable frente a sus objetivos del periodo.';
-      P.dibujarParrafo(doc, rec, y);
+      y = P.dibujarParrafo(doc, rec, y);
+
+      const bajaCalificacion = objetivo.criterios.filter(c => c.avance < 70 && c.justificacion);
+      if (bajaCalificacion.length) {
+        y = P.dibujarSeccion(doc, 'Justificación de objetivos con baja calificación', y);
+        bajaCalificacion.forEach(c => {
+          y = P.dibujarParrafo(doc, `"${c.nombre}" (${c.avance}%): ${c.justificacion}`, y);
+        });
+      }
     }
 
     P.dibujarPie(doc);
@@ -865,6 +921,7 @@
                   <div class="reco-card__body">
                     <h4>${c.nombre}</h4>
                     <p>${c.tier === 'fortaleza' ? 'Meta prácticamente cumplida; comparte cómo lo logró como referencia.' : c.tier === 'alta' ? 'Brecha importante frente a la meta: se recomienda un plan de acompañamiento dirigido.' : c.tier === 'media' ? 'Avance parcial: conviene reforzar con seguimiento periódico.' : 'Cerca de la meta; mantener el ritmo actual.'}</p>
+                    ${c.avance < 70 && c.justificacion ? `<p style="margin-top:6px;"><strong>Justificación registrada:</strong> ${UI.escapeHtml(c.justificacion)}</p>` : ''}
                     <span class="reco-tag">Avance ${c.avance}% · Peso ${c.peso}%</span>
                   </div>
                 </div>

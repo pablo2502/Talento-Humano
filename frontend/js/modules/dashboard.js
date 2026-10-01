@@ -42,12 +42,8 @@
 
   function cicloAvance(misEvaluaciones) {
     if (!misEvaluaciones.length) return 0;
-    const puntos = misEvaluaciones.reduce((sum, e) => {
-      if (['Finalizada', 'Consolidada', 'Cerrada'].includes(e.estado)) return sum + 1;
-      if (e.estado === 'En proceso') return sum + 0.5;
-      return sum;
-    }, 0);
-    return Math.round((puntos / misEvaluaciones.length) * 100);
+    const finalizadas = misEvaluaciones.filter(e => e.estado === 'Finalizada').length;
+    return Math.round((finalizadas / misEvaluaciones.length) * 100);
   }
 
   /* ---------------------------------------------------------------------
@@ -58,8 +54,8 @@
     const colaboradores = TH.DB.usuarios().filter(u => u.rolId === 'colaborador');
     const activos = colaboradores.filter(c => c.estado === 'Activo');
     const evaluaciones = TH.DB.evaluaciones();
-    const pendientes = evaluaciones.filter(e => !['Consolidada', 'Cerrada'].includes(e.estado)).length;
-    const finalizadas = evaluaciones.filter(e => ['Finalizada', 'Consolidada', 'Cerrada'].includes(e.estado)).length;
+    const pendientes = evaluaciones.filter(e => e.estado === 'Pendiente').length;
+    const finalizadas = evaluaciones.filter(e => e.estado === 'Finalizada').length;
 
     const periodoBase = TH.DB.periodosPorTipo('competencias').slice().reverse().find(p => p.estado === 'Cerrado') || TH.DB.periodoActivo();
     const consolidados = activos.map(c => TH.DB.consolidar(c.id, periodoBase.id)).filter(Boolean);
@@ -142,7 +138,6 @@
     const periodoActivo = TH.DB.periodoActivo();
     const misEvaluaciones = TH.DB.evaluacionesAsignadasA(usuario.id, periodoActivo.id);
     const pendientes = misEvaluaciones.filter(e => e.estado === 'Pendiente').length;
-    const enProceso = misEvaluaciones.filter(e => e.estado === 'En proceso').length;
     const avance = cicloAvance(misEvaluaciones);
 
     const historial = TH.DB.historialDe(usuario.id).filter(h => h.periodo.estado === 'Cerrado');
@@ -158,7 +153,7 @@
         <div class="hero__ring">${ringSvg(avance)}<div class="hero__ring-label">${avance}%</div></div>
         <div class="hero__body">
           <p class="eyebrow">Ciclo activo · ${periodoActivo.nombre}</p>
-          <h2>${(pendientes + enProceso) > 0 ? `Tienes ${pendientes + enProceso} evaluación(es) por completar` : 'Ya completaste tus evaluaciones de este ciclo'}</h2>
+          <h2>${pendientes > 0 ? `Tienes ${pendientes} evaluación(es) por completar` : 'Ya completaste tus evaluaciones de este ciclo'}</h2>
           <p class="desc">Como parte del modelo 360°, te autoevalúas${usuario.jefeId ? ', evalúas a tu jefe' : ''}${pares.length ? ' y a tus pares' : ''}${subalternos.length ? ', y a las ' + subalternos.length + ' persona(s) a tu cargo' : ''}. Ingresa a "Realizar evaluación" para continuar.</p>
         </div>
       </div>

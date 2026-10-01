@@ -36,7 +36,7 @@
 
       function filaEvaluacion(e) {
         const evaluador = TH.DB.usuario(e.evaluadorId);
-        const bloqueada = periodoCerrado || ['Consolidada', 'Cerrada'].includes(e.estado);
+        const bloqueada = periodoCerrado || e.estado === 'Finalizada';
         return `
           <div class="asig-row" style="display:flex;align-items:center;gap:6px;justify-content:space-between;padding:2px 0;">
             <span>${evaluador ? evaluador.nombre : '—'}<span class="cell-sub">${e.estado}</span></span>

@@ -29,7 +29,6 @@ const demoUsuarios = TH.DEMO_USER_IDS.map(id => TH.DB.usuario(id)).filter(Boolea
 function demoEtiqueta(usuario) {
   if (usuario.rolId === 'admin') return 'Administrador';
   const label = 'Colaborador · ' + TH.TIPO_CARGO_LABEL[usuario.tipoCargo];
-  const pares = TH.DB.paresDe(usuario.id).length;
   const subalternos = TH.DB.subalternosDirectos(usuario.id).length;
   const detalle = subalternos > 0 ? ' (con equipo a cargo)' : (usuario.jefeId ? '' : ' (sin jefe)');
   return label + detalle;
