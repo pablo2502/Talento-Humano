@@ -229,14 +229,10 @@
     { id: 'u-16', nombre: 'Camilo Álvarez', correo: 'camilo.alvarez@empresa.com', password: '123456', documento: '1010017', rolId: 'colaborador', cargo: 'Profesional de Bienestar Universitario y Salud Física', area: 'Bienestar Universitario', perfilId: 'perfil-16', tipoCargo: 'apoyo', jefeId: 'u-07', estado: 'Activo', fechaIngreso: '2026-09-01' },
 
     { id: 'u-15', nombre: 'Laura Jiménez', correo: 'laura.jimenez@empresa.com', password: '123456', documento: '1010016', rolId: 'colaborador', cargo: 'Profesor Tiempo Completo Asociado', area: 'Académica', perfilId: 'perfil-09', tipoCargo: 'profesor', jefeId: 'u-01', estado: 'Activo', fechaIngreso: '2022-01-15' },
+    { id: 'u-17', nombre: 'Mauricio Castañeda', correo: 'mauricio.castaneda@empresa.com', password: '123456', documento: '1010018', rolId: 'colaborador', cargo: 'Profesor Tiempo Completo Asociado', area: 'Académica', perfilId: 'perfil-09', tipoCargo: 'profesor', jefeId: 'u-01', estado: 'Activo', fechaIngreso: '2021-08-16' },
 
     { id: 'u-14', nombre: 'Jorge Salamanca', correo: 'jorge.salamanca@empresa.com', password: '123456', documento: '1010015', rolId: 'colaborador', cargo: 'Asistente Administrativo', area: 'Administrativa y Financiera', perfilId: 'perfil-10', tipoCargo: 'apoyo', jefeId: 'u-05', estado: 'Inactivo', fechaIngreso: '2021-11-09' }
   ];
-
-  // Accesos rápidos de demostración en login.html (spread de escenarios: admin,
-  // vértice sin jefe, profesor, mando medio con equipo a cargo, y el perfil de
-  // Desempeño por objetivos de Bienestar Universitario).
-  const DEMO_USER_IDS = ['u-admin', 'u-01', 'u-15', 'u-08', 'u-16'];
 
   /* =======================================================================
      PERÍODOS (RF-08)
@@ -1063,8 +1059,7 @@
   global.TH = {
     DB, uid, clamp, round1, promedio, descriptorPara, descriptorParaPct,
     ESTADOS_EVALUACION, siguienteEstadoValido, calcResultado, calcResultadoObjetivo,
-    TIPOS_EVALUADOR, TIPO_CARGO_LABEL, PESOS, ESCALA, NO_OBSERVADO,
-    DEMO_USER_IDS
+    TIPOS_EVALUADOR, TIPO_CARGO_LABEL, PESOS, ESCALA, NO_OBSERVADO
   };
 
 })(window);

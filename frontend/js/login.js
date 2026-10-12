@@ -19,37 +19,6 @@ if (TH.Auth.usuarioActual()) {
 }
 
 /* =====================================================
-   ACCESOS RÁPIDOS DE DEMOSTRACIÓN (uno por rol)
-====================================================== */
-
-const demoUsersGrid = document.getElementById('demoUsersGrid');
-
-const demoUsuarios = TH.DEMO_USER_IDS.map(id => TH.DB.usuario(id)).filter(Boolean);
-
-function demoEtiqueta(usuario) {
-  if (usuario.rolId === 'admin') return 'Administrador';
-  const label = 'Colaborador · ' + TH.TIPO_CARGO_LABEL[usuario.tipoCargo];
-  const subalternos = TH.DB.subalternosDirectos(usuario.id).length;
-  const detalle = subalternos > 0 ? ' (con equipo a cargo)' : (usuario.jefeId ? '' : ' (sin jefe)');
-  return label + detalle;
-}
-
-demoUsersGrid.innerHTML = demoUsuarios.map(usuario => `
-  <button type="button" class="demo-user-btn" data-correo="${usuario.correo}" data-password="${usuario.password}">
-    <span class="demo-user-btn__rol">${demoEtiqueta(usuario)}</span>
-    <span class="demo-user-btn__nombre">${usuario.nombre} · ${usuario.cargo}</span>
-  </button>
-`).join('');
-
-demoUsersGrid.addEventListener('click', event => {
-  const btn = event.target.closest('.demo-user-btn');
-  if (!btn) return;
-  usuarioInput.value = btn.dataset.correo;
-  passwordInput.value = btn.dataset.password;
-  loginForm.requestSubmit();
-});
-
-/* =====================================================
    MOSTRAR / OCULTAR CONTRASEÑA
 ====================================================== */
 

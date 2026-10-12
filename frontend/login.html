@@ -31,7 +31,7 @@
        ESTILOS
   ====================================================== -->
 
-  <link rel="stylesheet" href="css/login.css">
+  <link rel="stylesheet" href="css/login.css?v=16">
 
 </head>
 
@@ -56,64 +56,24 @@
 
 
     <!-- ===================================================
-         INFORMACIÓN DEL SISTEMA
+         ENCABEZADO INSTITUCIONAL (franja superior, compacta)
     ==================================================== -->
 
-    <section class="login-brand">
+    <header class="login-header">
 
-      <div class="brand-content">
-
-
-        <!-- LOGO -->
-
-        <div class="logo">
-          <img src="img/logo-uniempresarial.png" alt="Uniempresarial">
-        </div>
-
-
-        <p class="brand-eyebrow">
-          UNIEMPRESARIAL · GESTIÓN HUMANA
-        </p>
-
-
-        <h2 class="brand-title">
-          Evaluación por competencias y desempeño
-        </h2>
-
-
-        <p class="brand-description">
-
-          Gestiona usuarios, perfiles, competencias y comportamientos,
-          asigna evaluadores, realiza evaluaciones, consolida resultados
-          y da seguimiento al desempeño de cada colaborador.
-
-        </p>
-
-
-        <!-- ACCESOS DE DEMOSTRACIÓN -->
-
-        <div class="demo-users" id="demoUsers" aria-label="Accesos de demostración por rol">
-
-          <p class="demo-users__label">
-            Acceso rápido de demostración
-          </p>
-
-          <div class="demo-users__grid" id="demoUsersGrid"></div>
-
-        </div>
-
+      <div class="logo">
+        <img src="img/logo-uniempresarial.png" alt="Uniempresarial">
       </div>
 
+      <p class="brand-eyebrow">
+        UNIEMPRESARIAL · GESTIÓN HUMANA
+      </p>
 
-      <div class="brand-footer">
+      <h1 class="brand-title">
+        Evaluación por competencias y desempeño
+      </h1>
 
-        <span class="status-dot"></span>
-
-        Plataforma institucional disponible
-
-      </div>
-
-    </section>
+    </header>
 
 
     <!-- ===================================================
@@ -125,13 +85,14 @@
 
       <div class="form-header">
 
-        <h1>
+        <span class="form-eyebrow">Acceso al sistema</span>
+
+        <h2>
           Bienvenido
-        </h1>
+        </h2>
 
         <p>
           Ingresa tus credenciales institucionales para acceder al sistema.
-          También puedes usar uno de los accesos rápidos de demostración.
         </p>
 
       </div>
@@ -328,6 +289,19 @@
 
     </section>
 
+
+    <!-- ===================================================
+         PIE INSTITUCIONAL
+    ==================================================== -->
+
+    <div class="login-footer">
+
+      <span class="status-dot"></span>
+
+      Plataforma institucional disponible
+
+    </div>
+
   </main>
 
 
@@ -386,10 +360,10 @@
        JAVASCRIPT
   ====================================================== -->
 
-  <script src="js/data/competencias.js?v=10"></script>
-  <script src="js/data.js?v=10"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/login.js"></script>
+  <script src="js/data/competencias.js?v=16"></script>
+  <script src="js/data.js?v=16"></script>
+  <script src="js/auth.js?v=16"></script>
+  <script src="js/login.js?v=16"></script>
 
 </body>
 
