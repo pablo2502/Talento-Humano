@@ -11,3 +11,6 @@ backend/target/
 # OS
 .DS_Store
 Thumbs.db
+
+# Docker
+.env
