@@ -3,6 +3,7 @@ package com.talentohumano.evaluacion.security;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -56,6 +57,11 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(RUTAS_PUBLICAS).permitAll()
+                        // API del frontend 360° (capa de datos que reemplaza a localStorage).
+                        .requestMatchers(HttpMethod.POST, "/api/v2/auth/login", "/api/v2/datos/inicializar").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v2/datos/estado").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/v2/datos").hasRole("DATOS_ADMIN")
+                        .requestMatchers("/api/v2/**").hasRole("DATOS")
                         // Administracion de catalogos e identidad: solo ADMINISTRADOR.
                         .requestMatchers("/api/v1/roles/**").hasRole("ADMINISTRADOR")
                         .requestMatchers("/api/v1/usuarios/**").hasRole("ADMINISTRADOR")

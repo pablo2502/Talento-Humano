@@ -21,6 +21,10 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
+    public static final String CLAIM_ALCANCE = "alcance";
+    public static final String CLAIM_ADMIN = "admin";
+    public static final String ALCANCE_DATOS = "datos";
+
     private final Key signingKey;
     private final long expirationMs;
 
@@ -56,6 +60,32 @@ public class JwtService {
                 .setExpiration(expiracion)
                 .signWith(signingKey, SignatureAlgorithm.HS256)
                 .compact();
+    }
+
+    /**
+     * Token para la API /api/v2 (frontend 360°): el sujeto es el id del
+     * usuario en el modelo del frontend (p.ej. "u-16"), no un correo del
+     * modelo generico /api/v1.
+     */
+    public String generarTokenDatos(String usuarioId, boolean admin) {
+        Date ahora = new Date();
+        return Jwts.builder()
+                .claim(CLAIM_ALCANCE, ALCANCE_DATOS)
+                .claim(CLAIM_ADMIN, admin)
+                .setSubject(usuarioId)
+                .setIssuedAt(ahora)
+                .setExpiration(new Date(ahora.getTime() + expirationMs))
+                .signWith(signingKey, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    /** Valida firma y expiracion; lanza excepcion si el token no es valido. */
+    public Claims extraerClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(signingKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
     }
 
     public String extraerUsername(String token) {

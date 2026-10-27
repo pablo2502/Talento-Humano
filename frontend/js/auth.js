@@ -10,6 +10,14 @@
 
   const Auth = {
     intentarLogin(correoOUsuario, password) {
+      // Con backend, las contraseñas se validan en el servidor (nunca llegan al navegador).
+      if (TH.DB.modo() === 'servidor') {
+        const r = global.TH_Servidor.login(String(correoOUsuario).trim(), password);
+        if (!r.ok) return { ok: false, error: r.error };
+        sessionStorage.setItem(SESSION_KEY, r.usuarioId);
+        return { ok: true, usuario: TH.DB.usuario(r.usuarioId) || { id: r.usuarioId } };
+      }
+
       const usuario = TH.DB.usuarios().find(u =>
         u.correo.toLowerCase() === String(correoOUsuario).trim().toLowerCase()
       );
@@ -23,6 +31,7 @@
     usuarioActual() {
       const id = sessionStorage.getItem(SESSION_KEY);
       if (!id) return null;
+      if (TH.DB.modo() === 'servidor' && !global.TH_Servidor.haySesion()) return null;
       return TH.DB.usuario(id) || null;
     },
 
@@ -33,6 +42,7 @@
 
     cerrarSesion() {
       sessionStorage.removeItem(SESSION_KEY);
+      if (global.TH_Servidor) global.TH_Servidor.cerrarSesion();
     },
 
     // Redirige a login.html si no hay sesión válida. Usar al inicio de panel.html.

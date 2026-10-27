@@ -6,7 +6,8 @@
    AJUSTE_DE_COMPETENCIAS_2025_360...xlsx (ver frontend/js/data/competencias.js,
    generado de ese archivo).
 
-   No hay backend real conectado: todo vive en memoria y se persiste en
+   Capa de lógica de negocio del frontend. Los datos se persisten en el
+   backend (ver servidor.js) cuando está disponible y, si no, en
    localStorage para que los cambios sobrevivan a un refresco de página.
    El roster de personas es FICTICIO (mismos cargos y proporción real de
    niveles de cargo, nombres inventados) — ver README para el porqué.
@@ -332,8 +333,20 @@
   }
 
   /* =======================================================================
-     PERSISTENCIA (localStorage)
+     PERSISTENCIA
+     Con backend (ver servidor.js): la base vive en el servidor (MySQL) y
+     localStorage queda como copia local. Sin backend: solo localStorage,
+     igual que siempre. La API de TH.DB es la misma en ambos casos.
   ======================================================================= */
+
+  // Última versión de la base confirmada por el servidor: contra ella se
+  // calcula qué cambió en cada guardado, para enviar solo esos elementos.
+  const BASE_KEY = STORAGE_KEY + '_servidor';
+  const Servidor = global.TH_Servidor || null;
+  let modo = 'local';
+  let baseJson = null;
+  let enviando = false;
+  let reenviar = false;
 
   function load() {
     try {
@@ -349,12 +362,103 @@
 
   function save() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (modo === 'servidor') sincronizar();
   }
 
   function resetDemo() {
+    if (modo === 'servidor') {
+      if (!Servidor.borrarTodo()) {
+        console.error('Solo un administrador con sesión iniciada puede reiniciar la base del servidor.');
+        return;
+      }
+      localStorage.removeItem(BASE_KEY);
+    }
     localStorage.removeItem(STORAGE_KEY);
     location.reload();
   }
+
+  // Elementos nuevos/modificados/movidos/eliminados de `actual` respecto a `base`.
+  function diferencias(base, actual) {
+    const cambios = [];
+    const eliminados = [];
+    const colecciones = new Set(Object.keys(base).concat(Object.keys(actual)));
+    colecciones.forEach(coleccion => {
+      const antes = Array.isArray(base[coleccion]) ? base[coleccion] : [];
+      const ahora = Array.isArray(actual[coleccion]) ? actual[coleccion] : [];
+      const previos = new Map(antes.map((item, i) => [String(item.id), { json: JSON.stringify(item), posicion: i }]));
+      const vigentes = new Set();
+      ahora.forEach((item, posicion) => {
+        const id = String(item.id);
+        const previo = previos.get(id);
+        vigentes.add(id);
+        if (!previo || previo.json !== JSON.stringify(item)) cambios.push({ coleccion, id, posicion, datos: item });
+        else if (previo.posicion !== posicion) cambios.push({ coleccion, id, posicion });
+      });
+      previos.forEach((_, id) => { if (!vigentes.has(id)) eliminados.push({ coleccion, id }); });
+    });
+    return cambios.length || eliminados.length ? { cambios, eliminados } : null;
+  }
+
+  function confirmarBase(json) {
+    baseJson = json;
+    localStorage.setItem(BASE_KEY, json);
+  }
+
+  // Envía al servidor lo que cambió desde la última confirmación, en segundo
+  // plano y de a un envío a la vez. Si falla, el cambio queda en localStorage
+  // y se reintenta en el siguiente guardado o al volver a cargar la página.
+  function sincronizar() {
+    if (!baseJson || !Servidor.haySesion()) return;
+    if (enviando) { reenviar = true; return; }
+    const json = JSON.stringify(state);
+    const cambios = diferencias(JSON.parse(baseJson), state);
+    if (!cambios) return;
+    enviando = true;
+    Servidor.enviarCambios(cambios).then(ok => {
+      enviando = false;
+      if (ok) confirmarBase(json);
+      else console.warn('No se pudo guardar en el servidor; el cambio queda guardado localmente y se reintentará.');
+      if (reenviar) { reenviar = false; sincronizar(); }
+    });
+  }
+
+  function conectarServidor() {
+    const estado = Servidor && Servidor.estado();
+    if (!estado) return; // sin backend: modo local, como siempre
+
+    // Primer arranque del servidor: arranca con la base que ya tiene este navegador (o la semilla).
+    // Si esa carga falla, se sigue en modo local para no dejar la aplicación sin datos.
+    if (!estado.inicializado && !Servidor.inicializar(state)) return;
+    // Sin sesión (p.ej. login.html) solo hace falta saber que hay servidor.
+    if (!Servidor.haySesion()) { modo = 'servidor'; return; }
+
+    // Cambios hechos aquí que no alcanzaron a llegar (red caída, pestaña cerrada a mitad de un envío).
+    const basePrevia = localStorage.getItem(BASE_KEY);
+    if (basePrevia) {
+      const pendientes = diferencias(JSON.parse(basePrevia), state);
+      if (pendientes) Servidor.enviarCambiosSync(pendientes);
+    }
+
+    const remoto = Servidor.obtener();
+    if (remoto) {
+      state = remoto;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      confirmarBase(JSON.stringify(state));
+      modo = 'servidor';
+    } else if (basePrevia && Servidor.haySesion()) {
+      // Servidor caído en este momento: se trabaja con la copia local y se sincroniza al volver.
+      baseJson = basePrevia;
+      modo = 'servidor';
+    } else if (!Servidor.haySesion()) {
+      modo = 'servidor'; // sesión vencida: auth.js redirige al login
+    }
+  }
+
+  global.addEventListener('pagehide', () => {
+    if (modo !== 'servidor' || !baseJson || !Servidor.haySesion()) return;
+    const cambios = diferencias(JSON.parse(baseJson), state);
+    if (cambios) Servidor.enviarCambios(cambios, true);
+  });
 
   /* =======================================================================
      ESTRUCTURA ORGANIZACIONAL (deriva jefe / pares / subalternos de jefeId)
@@ -633,6 +737,7 @@
     save();
   }
 
+  conectarServidor();
   reindexCompetencias();
 
   /* =======================================================================
@@ -1052,6 +1157,9 @@
       state.notificaciones.unshift({ id: uid('not'), usuarioId, tipo, mensaje, fecha: new Date().toISOString().slice(0, 10), leida: false });
       save();
     },
+
+    // 'servidor' si los datos viven en el backend, 'local' si solo en este navegador.
+    modo: () => modo,
 
     save, resetDemo
   };

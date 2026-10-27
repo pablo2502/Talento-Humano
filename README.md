@@ -39,13 +39,38 @@ Talento/
               el diccionario de competencias real — ver nota más abajo.
 ```
 
-Hoy **no están conectados entre sí** y **su modelo de datos ya no coincide
-del todo**: el frontend fue reconstruido sobre el diccionario 360° real
-(Autoevaluación/Jefe/Par/Subalterno + SST, niveles de cargo Estratégico/
-Táctico/Apoyo), mientras que el backend sigue modelando el esquema genérico
-original (Jefe/Gerente/Cliente) del documento de requerimientos. Alinear el
-backend a este mismo modelo real es el siguiente paso pendiente (ver
-"Próximos pasos").
+## Arquitectura de 3 capas
+
+```
+Navegador ─► [Presentación]  nginx + frontend/ (HTML/CSS/JS)
+                 │  /api/v2  (JWT)
+                 ▼
+             [Aplicación]    backend/ Spring Boot — login, sesión, API de datos
+                 │  JPA
+                 ▼
+             [Datos]         MySQL (tabla th_datos)
+```
+
+- El frontend guarda y lee su base desde el backend (`/api/v2`), que la
+  persiste en MySQL. La conexión vive en `frontend/js/servidor.js` y la
+  usa `frontend/js/data.js`. La API `TH.DB` y las reglas de negocio no
+  cambiaron, así que ningún módulo tuvo que tocarse.
+- Cada elemento de cada colección (usuario, evaluación, objetivo, …) es
+  una fila de `th_datos`, y cada guardado envía solo los elementos que
+  cambiaron. Así varias personas pueden trabajar a la vez sin pisarse.
+- El login se valida en el servidor y devuelve un JWT. Las contraseñas se
+  guardan con BCrypt y nunca se envían al navegador.
+- **Respaldo local:** si no hay backend (por ejemplo, abierto con
+  `python -m http.server`), el frontend funciona exactamente como antes,
+  solo con `localStorage`. Si el servidor se cae a mitad de sesión, los
+  cambios quedan guardados localmente y se suben solos cuando vuelve.
+- El primer navegador que entra con la base vacía la inicializa con los
+  datos de ejemplo de `data.js`.
+- `TH.DB.resetDemo()` borra también la base del servidor, pero solo
+  funciona con una sesión de administrador.
+
+El modelo genérico `/api/v1` del backend (Jefe/Gerente/Cliente) sigue en el
+código, pero el frontend no lo usa. Ver "Próximos pasos".
 
 ## Frontend (`frontend/`)
 
@@ -83,11 +108,12 @@ a su cargo si las tiene):
   cálculos oficiales (RF-25, RNF-14, RNF-16).
 - **Notificaciones** (RF-26).
 
-No usa backend: los datos viven en `frontend/js/data.js` (+ el diccionario
-de competencias en `frontend/js/data/competencias.js`) y se persisten en
-`localStorage` del navegador para que los cambios sobrevivan a un refresco
-de página. Bórralos con `TH.DB.resetDemo()` desde la consola del navegador
-si quieres reiniciar la demo a sus valores originales.
+Los datos de ejemplo salen de `frontend/js/data.js` (más el diccionario de
+competencias en `frontend/js/data/competencias.js`). Con el backend
+levantado (`docker compose up`), se guardan en MySQL. Sin backend, se
+guardan en el `localStorage` del navegador (ver "Arquitectura de 3 capas").
+Bórralos con `TH.DB.resetDemo()` desde la consola del navegador si quieres
+reiniciar la demo a sus valores originales.
 
 ### Cómo abrirlo
 
@@ -170,12 +196,12 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`.
 
 ## Próximos pasos sugeridos
 
-1. Ajustar el modelo de dominio del backend al esquema 360° real
-   (Autoevaluación/Jefe/Par/Subalterno + SST, niveles de cargo
-   Estratégico/Táctico/Apoyo, pesos de consolidación por nivel) para que
-   coincida con `frontend/js/data.js`.
-2. Conectar `frontend/js/data.js` a la API del backend (reemplazando las
-   funciones de `TH.DB` por llamadas `fetch` autenticadas con JWT).
+1. Mover poco a poco las reglas de negocio (consolidación 360°, máquina de
+   estados, asignación por organigrama) de `frontend/js/data.js` al backend,
+   para que el servidor valide lo que guarda y no solo lo almacene. Hoy el
+   servidor exige sesión para leer y escribir, pero no revisa *qué* escribe
+   cada usuario.
+2. Retirar o adaptar el modelo genérico `/api/v1`, que el frontend no usa.
 3. Completar los módulos marcados como TODO en el backend (informes en PDF
    real, IA real, búsqueda avanzada, asignación automática de evaluadores
    por organigrama real, reglas de autorización "solo veo lo mío").

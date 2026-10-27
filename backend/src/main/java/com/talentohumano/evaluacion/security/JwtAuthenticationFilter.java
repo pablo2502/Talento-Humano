@@ -1,5 +1,6 @@
 package com.talentohumano.evaluacion.security;
 
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -7,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -14,6 +16,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Filtro que extrae y valida el JWT de la cabecera Authorization en cada
@@ -43,14 +47,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String token = header.substring(PREFIX.length());
-        String username = null;
+        Claims claims = null;
         try {
-            username = jwtService.extraerUsername(token);
+            claims = jwtService.extraerClaims(token);
         } catch (Exception ex) {
             // Token invalido/expirado/corrupto: se deja la request sin autenticar;
             // Spring Security respondera 401/403 mas adelante en la cadena segun la regla de la ruta.
         }
 
+        if (claims != null && JwtService.ALCANCE_DATOS.equals(claims.get(JwtService.CLAIM_ALCANCE))) {
+            // Token del frontend 360° (/api/v2): solo vale para esa API.
+            if (request.getRequestURI().startsWith(request.getContextPath() + "/api/v2/")
+                    && SecurityContextHolder.getContext().getAuthentication() == null) {
+                List<SimpleGrantedAuthority> autoridades = new ArrayList<>();
+                autoridades.add(new SimpleGrantedAuthority("ROLE_DATOS"));
+                if (Boolean.TRUE.equals(claims.get(JwtService.CLAIM_ADMIN, Boolean.class))) {
+                    autoridades.add(new SimpleGrantedAuthority("ROLE_DATOS_ADMIN"));
+                }
+                SecurityContextHolder.getContext().setAuthentication(
+                        new UsernamePasswordAuthenticationToken(claims.getSubject(), null, autoridades));
+            }
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String username = claims != null ? claims.getSubject() : null;
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
             if (jwtService.esTokenValido(token, userDetails)) {
